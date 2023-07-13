@@ -6,6 +6,7 @@ import { BoxConfigModule } from './box_config/box_config.module';
 import { typeormConfig } from './typeorm.config';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { GraphQLModule } from '@nestjs/graphql';
+import { SubscriberModule } from './subscriber/subscriber.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { GraphQLModule } from '@nestjs/graphql';
       include: [BoxConfigModule],
       installSubscriptionHandlers: true,
     }),
+    SubscriberModule,
   ],
   controllers: [AppController],
   providers: [AppService],

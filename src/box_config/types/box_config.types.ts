@@ -1,26 +1,28 @@
-import { InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Field,
+  InputType,
+  ObjectType,
+  registerEnumType,
+} from '@nestjs/graphql';
 
 @InputType('BoxConfigInput')
 @ObjectType('BoxConfigOutput')
 export class BoxConfigDto {
-  @PrimaryGeneratedColumn('uuid')
-  boxId: string;
-  @Column({ type: 'enum' })
+  @Field(() => BoxPool)
   boxPool: BoxPool;
-  @Column()
+  @Field()
   executionsCount: number;
-  @Column({ nullable: true })
+  @Field({ nullable: true })
   initialDelay?: number;
-  @Column({ nullable: true })
+  @Field({ nullable: true })
   buyNowPrice?: number;
-  @Column({ nullable: true })
+  @Field({ nullable: true })
   bidStartPrice?: number;
-  @Column({ nullable: true })
+  @Field({ nullable: true })
   bidIncrease: number;
-  @Column()
+  @Field()
   cooldownDuration: number;
-  @Column({ type: 'enum' })
+  @Field(() => BoxState)
   boxState: BoxState;
 }
 
