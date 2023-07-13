@@ -9,6 +9,8 @@ export class BoxConfig {
   boxPool: BoxPool;
   @Column()
   executionsCount: number;
+  @Column()
+  boxDuration: number;
   @Column({ nullable: true })
   initialDelay?: number;
   @Column({ nullable: true })

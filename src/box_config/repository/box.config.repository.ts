@@ -11,4 +11,8 @@ export class BoxConfigRepository extends Repository<BoxConfig> {
   saveOrUpdateBoxConfig(boxConfig: BoxConfig) {
     return this.save(boxConfig);
   }
+
+  getBuyId(boxId: string) {
+    return this.findOne({ where: { boxId } });
+  }
 }

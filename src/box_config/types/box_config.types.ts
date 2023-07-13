@@ -14,6 +14,10 @@ export class BoxConfigDto {
   boxPool: BoxPool;
   @Field()
   executionsCount: number;
+  @Field()
+  boxDuration: number;
+  @Field({ nullable: true })
+  boxStart: number;
   @Field({ nullable: true })
   initialDelay?: number;
   @Field({ nullable: true })
