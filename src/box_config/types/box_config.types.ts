@@ -8,6 +8,8 @@ import {
 @InputType('BoxConfigInput')
 @ObjectType('BoxConfigOutput')
 export class BoxConfigDto {
+  @Field({ nullable: true })
+  boxId: string;
   @Field(() => BoxPool)
   boxPool: BoxPool;
   @Field()
