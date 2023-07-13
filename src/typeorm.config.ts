@@ -3,7 +3,6 @@ import { join } from 'path';
 import * as dotenv from 'dotenv';
 export const typeormConfig = (): TypeOrmModuleOptions => {
   dotenv.config();
-  console.log(process.env.DB_HOST!);
 
   return {
     type: 'postgres',
