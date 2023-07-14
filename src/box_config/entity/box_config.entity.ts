@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { BoxPool, BoxState } from '../types/box_config.types';
+import { BoxPool, BoxState, BoxType } from '../types/box_config.types';
 
 @Entity()
 export class BoxConfig {
@@ -25,4 +25,6 @@ export class BoxConfig {
   cooldownDuration: number;
   @Column({ type: 'enum', enum: BoxState })
   boxState: BoxState;
+  @Column({ type: 'enum', enum: BoxType })
+  boxType: BoxType;
 }

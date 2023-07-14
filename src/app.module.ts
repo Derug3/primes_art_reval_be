@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
+
 import { AppService } from './app.service';
 import { BoxConfigModule } from './box_config/box_config.module';
 import { typeormConfig } from './typeorm.config';
@@ -8,6 +8,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { GraphQLModule } from '@nestjs/graphql';
 import { SubscriberModule } from './subscriber/subscriber.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { NftModule } from './nft/nft.module';
 
 @Module({
   imports: [
@@ -26,13 +27,14 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
       driver: ApolloDriver,
       playground: true,
       autoSchemaFile: true,
-      include: [BoxConfigModule],
+      include: [BoxConfigModule, NftModule],
       installSubscriptionHandlers: true,
     }),
     SubscriberModule,
     RedisModule,
+    NftModule,
   ],
-  controllers: [AppController],
+
   providers: [AppService],
 })
 export class AppModule {}

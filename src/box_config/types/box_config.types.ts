@@ -38,6 +38,8 @@ export class BoxConfigInput {
   boxPause: number;
   @Field(() => BoxState)
   boxState: BoxState;
+  @Field(() => BoxType)
+  boxType: BoxType;
 }
 
 @ObjectType()
@@ -46,6 +48,10 @@ export class BoxConfigOutput extends BoxConfigInput {
   boxTimingState: BoxTimigState;
   @Field()
   executionsCount: number;
+  @Field()
+  bidsCount: number;
+  @Field({ nullable: true })
+  activeNft: string;
 }
 
 export enum BoxPool {
@@ -67,3 +73,11 @@ export enum BoxState {
 }
 
 registerEnumType(BoxState, { name: 'BoxState' });
+
+export enum BoxType {
+  BidBuyNow,
+  Bid,
+  BuyNow,
+}
+
+registerEnumType(BoxType, { name: 'BoxType' });

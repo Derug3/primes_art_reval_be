@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { RedisService } from 'nestjs-redis';
+
 import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { BoxConfig } from './entity/box_config.entity';
 import { BoxConfigRepository } from './repository/box.config.repository';
@@ -11,8 +11,11 @@ import {
 import { sleep } from './utilities/helpers';
 import Redis from 'ioredis';
 import dayjs from 'dayjs';
+
 export class BoxConfigWorker {
   box: BoxConfig;
+  activeNft: string;
+  bidsCount: number;
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -23,6 +26,7 @@ export class BoxConfigWorker {
     private readonly redisService: Redis,
   ) {
     this.box = boxConfig;
+    this.bidsCount = 0;
     this.start();
   }
 
@@ -91,10 +95,12 @@ export class BoxConfigWorker {
 
   async resolveBox() {
     this.logger.log('Resolved box');
+    this.activeNft = undefined;
   }
 
   async setupBox() {
     this.logger.log('Box setup');
+    this.activeNft = [][Math.round(Math.random() * 199) + 1];
   }
 
   async publishBox(boxTimingState: BoxTimigState) {
@@ -107,6 +113,8 @@ export class BoxConfigWorker {
     return {
       ...this.box,
       boxTimingState,
+      bidsCount: this.bidsCount,
+      activeNft: this.activeNft,
     };
   }
 }
