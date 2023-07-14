@@ -4,6 +4,7 @@ import {
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
+import { BoxType } from 'src/enum/enums';
 import { Nft } from 'src/nft/entity/nft.entity';
 
 @ObjectType('BoxTimingStateOutput')
@@ -47,7 +48,7 @@ export class BoxConfigInput {
 export class BoxConfigOutput extends BoxConfigInput {
   @Field(() => BoxTimigState)
   boxTimingState: BoxTimigState;
-  @Field()
+  @Field({ nullable: true })
   executionsCount: number;
   @Field()
   bidsCount: number;
@@ -74,11 +75,3 @@ export enum BoxState {
 }
 
 registerEnumType(BoxState, { name: 'BoxState' });
-
-export enum BoxType {
-  BidBuyNow,
-  Bid,
-  BuyNow,
-}
-
-registerEnumType(BoxType, { name: 'BoxType' });

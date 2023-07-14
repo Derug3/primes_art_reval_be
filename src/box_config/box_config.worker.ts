@@ -10,7 +10,7 @@ import {
 } from './types/box_config.types';
 import { sleep } from './utilities/helpers';
 import Redis from 'ioredis';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 import { NftService } from 'src/nft/nft.service';
 import { Nft } from 'src/nft/entity/nft.entity';
 
@@ -100,22 +100,28 @@ export class BoxConfigWorker {
     this.logger.log('Resolved box');
     await this.redisService.del(this.activeNft.nftId);
     this.activeNft = undefined;
+    this.box.executionsCount += 1;
   }
 
   async setupBox() {
-    this.logger.log('Box setup');
-    const nfts = await this.nftService.getNonMinted();
+    try {
+      this.logger.log('Box setup');
+      const nfts = await this.nftService.getNonMinted();
 
-    let acknowledged = -1;
+      let acknowledged = 0;
 
-    do {
-      const randomNft = nfts[Math.round(Math.random() * nfts.length) + 1];
-      acknowledged = await this.redisService.setnx(
-        randomNft.nftId,
-        JSON.stringify(randomNft),
-      );
-      this.activeNft = randomNft;
-    } while (acknowledged < 0);
+      do {
+        const rand = Math.round(Math.random() * nfts.length) + 1;
+        console.log(rand);
+
+        const randomNft = nfts[rand];
+        acknowledged = await this.redisService.setnx(
+          randomNft.nftId,
+          JSON.stringify(randomNft),
+        );
+        this.activeNft = randomNft;
+      } while (acknowledged <= 0);
+    } catch (error) {}
   }
 
   async publishBox(boxTimingState: BoxTimigState) {

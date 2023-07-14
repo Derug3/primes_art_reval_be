@@ -1,5 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
-import { BoxType } from 'src/box_config/types/box_config.types';
+import { BoxType } from 'src/enum/enums';
 import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm';
 
 @Entity()
@@ -14,17 +14,17 @@ export class Nft {
   @Field()
   @Column({ default: false })
   minted?: boolean;
-  @Field()
+  @Field({ nullable: true })
   @Column({ nullable: true })
   owner?: string;
-  @Field()
+  @Field({ nullable: true })
   @Column({ nullable: true })
   mintedFor?: number;
-  @Field()
+  @Field({ nullable: true })
   @Column({ nullable: true })
   mintedAt?: string;
-  @Field()
-  @Column({ nullable: true, type: 'enum', enum: BoxType })
+  @Field(() => BoxType, { nullable: true })
+  @Column({ type: 'enum', enum: BoxType, nullable: true })
   boxType?: BoxType;
   @Field()
   @Column({ default: 0 })

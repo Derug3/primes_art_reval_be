@@ -50,6 +50,7 @@ export class BoxConfigService implements OnModuleInit {
 
   async saveOrUpdateBoxHandler(box: BoxConfigInput) {
     const saved = await this.saveOrUpdateBox.execute(box);
+    this.logger.debug(`Staring box worker with id:${saved.boxId}`);
     if (!box.boxId) {
       const newWorker = new BoxConfigWorker(
         this.subscriptionService,

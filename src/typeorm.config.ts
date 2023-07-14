@@ -15,7 +15,7 @@ export const typeormConfig = (): TypeOrmModuleOptions => {
     password: process.env.DB_PASSWORD!,
     entities: [BoxConfig, Nft],
     //TODO:only in dev mode!
-    dropSchema: true,
+    // dropSchema: true,
     synchronize: true,
   };
 };

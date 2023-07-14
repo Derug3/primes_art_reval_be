@@ -1,5 +1,6 @@
+import { BoxType } from 'src/enum/enums';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { BoxPool, BoxState, BoxType } from '../types/box_config.types';
+import { BoxPool, BoxState } from '../types/box_config.types';
 
 @Entity()
 export class BoxConfig {
@@ -7,21 +8,21 @@ export class BoxConfig {
   boxId: string;
   @Column({ type: 'enum', enum: BoxPool })
   boxPool: BoxPool;
-  @Column()
+  @Column({ nullable: true })
   executionsCount: number;
-  @Column()
+  @Column({ type: 'float' })
   boxDuration: number;
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'float' })
   initialDelay?: number;
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'float' })
   buyNowPrice?: number;
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'float' })
   bidStartPrice?: number;
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'float' })
   bidIncrease: number;
-  @Column()
+  @Column({ type: 'float' })
   boxPause: number;
-  @Column()
+  @Column({ type: 'float' })
   cooldownDuration: number;
   @Column({ type: 'enum', enum: BoxState })
   boxState: BoxState;

@@ -12,10 +12,11 @@ export class BoxConfigResolver {
   }
 
   @Mutation(() => Boolean)
-  saveOrUpdateBoxConfig(
+  async saveOrUpdateBoxConfig(
     @Args('boxConfig') boxConfig: BoxConfigInput,
     @Args('signedMessage') signedMessage: string,
   ) {
+    await this.boxConfigService.saveOrUpdateBoxHandler(boxConfig);
     return true;
   }
 }

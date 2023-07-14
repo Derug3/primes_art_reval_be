@@ -17,6 +17,9 @@ export class SaveOrUpdateBoxConfig {
       boxConfig.boxState = boxConfigDto.boxState;
       boxConfig.cooldownDuration = boxConfigDto.cooldownDuration;
       boxConfig.buyNowPrice = boxConfigDto.buyNowPrice;
+      boxConfig.boxDuration = boxConfigDto.boxDuration;
+      boxConfig.boxPause = boxConfigDto.boxPause;
+      boxConfig.boxType = boxConfigDto.boxType;
 
       return await this.boxConfigRepo.saveOrUpdateBoxConfig(boxConfig);
     } catch (error) {
