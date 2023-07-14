@@ -65,7 +65,9 @@ export class BoxConfigWorker {
           state: BoxState.Paused,
         };
         await this.publishBox(this.boxTimingState);
-        await sleep(newBoxState.boxPause);
+        await sleep(newBoxState.boxPause * 1000);
+        this.box.boxState = BoxState.Active;
+        await this.boxConfigRepo.save(this.box);
       }
       this.box = newBoxState;
     }
