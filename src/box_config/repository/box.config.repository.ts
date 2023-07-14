@@ -15,4 +15,8 @@ export class BoxConfigRepository extends Repository<BoxConfig> {
   getBuyId(boxId: string) {
     return this.findOne({ where: { boxId } });
   }
+
+  getAllDbBoxes() {
+    return this.find();
+  }
 }

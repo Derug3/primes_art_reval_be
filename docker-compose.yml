@@ -13,6 +13,16 @@ services:
       - primes_network
     depends_on:
       - primes_db
+      - primes_redis
+  primes_redis:
+    image: redis:latest
+    ports:
+      -6379:6379
+    environment:
+      REDIS_USERNAME: ${REDIS_USERNAME}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - primes_network
   primes_db:
     image: postgres:14.2-alpine
     container_name: primes_db

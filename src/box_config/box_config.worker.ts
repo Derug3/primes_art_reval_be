@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { BoxConfig } from './entity/box_config.entity';
 import { BoxConfigRepository } from './repository/box.config.repository';
+import { BoxState } from './types/box_config.types';
 import { sleep } from './utilities/helpers';
 
 export class BoxConfigWorker {
@@ -24,7 +25,16 @@ export class BoxConfigWorker {
       await sleep(this.box.initialDelay * 1000);
     }
     if (this.box.boxId) {
-      this.box = await this.boxConfigRepo.getBuyId(this.box.boxId);
+      const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
+      if (newBoxState.boxState === BoxState.Removed) {
+        this.logger.debug(`Stopping box with id ${this.box.boxId}`);
+        return;
+      }
+      if (newBoxState.boxState === BoxState.Paused) {
+        //TODO:set pause period in box
+        await sleep(0);
+      }
+      this.box = newBoxState;
     }
 
     await this.subscriberService.pubSub.publish('boxConfig', {
