@@ -5,7 +5,7 @@ import { BoxPool, BoxState } from '../types/box_config.types';
 export class BoxConfig {
   @PrimaryGeneratedColumn('uuid')
   boxId: string;
-  @Column({ type: 'enum' })
+  @Column({ type: 'enum', enum: BoxPool })
   boxPool: BoxPool;
   @Column()
   executionsCount: number;
@@ -20,7 +20,9 @@ export class BoxConfig {
   @Column({ nullable: true })
   bidIncrease: number;
   @Column()
+  boxPause: number;
+  @Column()
   cooldownDuration: number;
-  @Column({ type: 'enum' })
+  @Column({ type: 'enum', enum: BoxState })
   boxState: BoxState;
 }

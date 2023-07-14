@@ -1,10 +1,11 @@
 import { Logger } from '@nestjs/common';
+import { RedisService } from 'nestjs-redis';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { BoxConfig } from './entity/box_config.entity';
 import { BoxConfigRepository } from './repository/box.config.repository';
 import { BoxState } from './types/box_config.types';
 import { sleep } from './utilities/helpers';
-
+import Redis from 'ioredis';
 export class BoxConfigWorker {
   box: BoxConfig;
 
@@ -14,12 +15,15 @@ export class BoxConfigWorker {
     private readonly subscriberService: SubscriberService,
     private readonly boxConfigRepo: BoxConfigRepository,
     boxConfig: BoxConfig,
+    private readonly redisService: Redis,
   ) {
     this.box = boxConfig;
     this.start();
   }
 
   async start() {
+    this.logger.debug(`Starting box ${this.box.boxId}`);
+    await this.publishBox();
     if (this.box.initialDelay && this.box.executionsCount === 0) {
       this.logger.log(`Initial delay of ${this.box.initialDelay} seconds`);
       await sleep(this.box.initialDelay * 1000);
@@ -28,18 +32,18 @@ export class BoxConfigWorker {
       const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
       if (newBoxState.boxState === BoxState.Removed) {
         this.logger.debug(`Stopping box with id ${this.box.boxId}`);
+        await this.publishBox();
         return;
       }
       if (newBoxState.boxState === BoxState.Paused) {
-        //TODO:set pause period in box
-        await sleep(0);
+        await this.publishBox();
+        await sleep(newBoxState.boxPause);
       }
       this.box = newBoxState;
     }
 
-    await this.subscriberService.pubSub.publish('boxConfig', {
-      boxConfig: this.box,
-    });
+    await this.setupBox();
+    await this.publishBox();
 
     this.logger.log('Box emitted');
 
@@ -50,10 +54,12 @@ export class BoxConfigWorker {
 
   async cooldown() {
     await this.resolveBox();
-    this.subscriberService.pubSub.publish('boxConfig', { boxConfig: this.box });
+
     if (this.box.cooldownDuration > 0) {
       this.logger.log('Cooldown started');
+      await this.publishBox();
       await sleep(this.box.cooldownDuration * 1000);
+      await this.publishBox();
     }
 
     await this.start();
@@ -61,5 +67,17 @@ export class BoxConfigWorker {
 
   async resolveBox() {
     this.logger.log('Resolved box');
+    await this.publishBox();
+  }
+
+  async setupBox() {
+    this.logger.log('Box setup');
+    await this.publishBox();
+  }
+
+  async publishBox() {
+    await this.subscriberService.pubSub.publish('boxConfig', {
+      boxConfig: this.box,
+    });
   }
 }

@@ -28,6 +28,8 @@ export class BoxConfigDto {
   bidIncrease: number;
   @Field()
   cooldownDuration: number;
+  @Field()
+  boxPause: number;
   @Field(() => BoxState)
   boxState: BoxState;
 }

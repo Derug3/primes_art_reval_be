@@ -7,17 +7,19 @@ import { typeormConfig } from './typeorm.config';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { GraphQLModule } from '@nestjs/graphql';
 import { SubscriberModule } from './subscriber/subscriber.module';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 @Module({
   imports: [
     BoxConfigModule,
     TypeOrmModule.forRoot(typeormConfig()),
-    RedisModule.register({
-      host: process.env.REDIS_HOST!,
-      username: process.env.REDIS_USER!,
-      password: process.env.REDIS_PASSWORD!,
-      port: parseInt(process.env.REDIS_PORT) || 6379,
+    RedisModule.forRoot({
+      config: {
+        host: process.env.REDIS_HOST!,
+        username: process.env.REDIS_USER!,
+        password: process.env.REDIS_PASSWORD!,
+        port: parseInt(process.env.REDIS_PORT) || 6379,
+      },
     }),
 
     GraphQLModule.forRoot<ApolloDriverConfig>({
