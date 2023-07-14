@@ -18,7 +18,8 @@ export class BoxTimigState {
   state: BoxState;
 }
 
-@InputType()
+@InputType('BoxConfigIn')
+@ObjectType('BoxConfigOut')
 export class BoxConfigInput {
   @Field({ nullable: true })
   boxId: string;

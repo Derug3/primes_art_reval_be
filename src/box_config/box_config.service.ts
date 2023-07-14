@@ -69,4 +69,8 @@ export class BoxConfigService implements OnModuleInit {
     //   this.workers.splice(index, 1);
     // }
   }
+
+  getActiveBoxes() {
+    return this.workers.map((w) => w.mapToDto());
+  }
 }

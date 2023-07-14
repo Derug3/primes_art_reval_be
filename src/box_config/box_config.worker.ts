@@ -18,6 +18,7 @@ export class BoxConfigWorker {
   box: BoxConfig;
   activeNft: Nft;
   bidsCount: number;
+  boxTimingState: BoxTimigState;
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -36,11 +37,12 @@ export class BoxConfigWorker {
   async start() {
     this.logger.debug(`Starting box ${this.box.boxId}`);
     if (this.box.initialDelay && this.box.executionsCount === 0) {
-      await this.publishBox({
+      this.boxTimingState = {
         endsAt: dayjs().add(this.box.initialDelay, 'seconds').unix(),
         startedAt: dayjs().unix(),
         state: BoxState.Paused,
-      });
+      };
+      await this.publishBox(this.boxTimingState);
       this.logger.log(`Initial delay of ${this.box.initialDelay} seconds`);
       await sleep(this.box.initialDelay * 1000);
     }
@@ -48,30 +50,33 @@ export class BoxConfigWorker {
       const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
       if (newBoxState.boxState === BoxState.Removed) {
         this.logger.debug(`Stopping box with id ${this.box.boxId}`);
-        await this.publishBox({
+        this.boxTimingState = {
           endsAt: -1,
           startedAt: dayjs().unix(),
           state: BoxState.Removed,
-        });
+        };
+        await this.publishBox(this.boxTimingState);
         return;
       }
       if (newBoxState.boxState === BoxState.Paused) {
-        await this.publishBox({
+        this.boxTimingState = {
           endsAt: dayjs().add(newBoxState.boxPause, 'seconds').unix(),
           startedAt: dayjs().unix(),
           state: BoxState.Paused,
-        });
+        };
+        await this.publishBox(this.boxTimingState);
         await sleep(newBoxState.boxPause);
       }
       this.box = newBoxState;
     }
 
     await this.setupBox();
-    await this.publishBox({
+    this.boxTimingState = {
       endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
       startedAt: dayjs().unix(),
       state: BoxState.Active,
-    });
+    };
+    await this.publishBox(this.boxTimingState);
 
     this.logger.log('Box emitted');
 
@@ -85,11 +90,12 @@ export class BoxConfigWorker {
 
     if (this.box.cooldownDuration > 0) {
       this.logger.log('Cooldown started');
-      await this.publishBox({
+      this.boxTimingState = {
         startedAt: dayjs().unix(),
         endsAt: dayjs().add(this.box.cooldownDuration, 'seconds').unix(),
         state: BoxState.Cooldown,
-      });
+      };
+      await this.publishBox(this.boxTimingState);
       await sleep(this.box.cooldownDuration * 1000);
     }
 
@@ -101,6 +107,7 @@ export class BoxConfigWorker {
     await this.redisService.del(this.activeNft.nftId);
     this.activeNft = undefined;
     this.box.executionsCount += 1;
+    await this.boxConfigRepo.save(this.box);
   }
 
   async setupBox() {
@@ -126,14 +133,14 @@ export class BoxConfigWorker {
 
   async publishBox(boxTimingState: BoxTimigState) {
     await this.subscriberService.pubSub.publish('boxConfig', {
-      boxConfig: this.mapToDto(boxTimingState),
+      boxConfig: this.mapToDto(),
     });
   }
 
-  mapToDto(boxTimingState: BoxTimigState): BoxConfigOutput {
+  mapToDto(): BoxConfigOutput {
     return {
       ...this.box,
-      boxTimingState,
+      boxTimingState: this.boxTimingState,
       bidsCount: this.bidsCount,
       activeNft: this.activeNft,
     };

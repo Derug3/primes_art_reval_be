@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { BoxConfigService } from './box_config.service';
-import { BoxConfigInput } from './types/box_config.types';
+import { BoxConfigInput, BoxConfigOutput } from './types/box_config.types';
 
 @Resolver()
 export class BoxConfigResolver {
@@ -18,5 +18,10 @@ export class BoxConfigResolver {
   ) {
     await this.boxConfigService.saveOrUpdateBoxHandler(boxConfig);
     return true;
+  }
+
+  @Query(() => [BoxConfigOutput])
+  getBoxConfigs() {
+    return this.boxConfigService.getActiveBoxes();
   }
 }
