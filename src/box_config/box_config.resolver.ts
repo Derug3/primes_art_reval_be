@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { BoxConfigService } from './box_config.service';
-import { BoxConfigDto } from './types/box_config.types';
+import { BoxConfigInput } from './types/box_config.types';
 
 @Resolver()
 export class BoxConfigResolver {
@@ -13,7 +13,7 @@ export class BoxConfigResolver {
 
   @Mutation(() => Boolean)
   saveOrUpdateBoxConfig(
-    @Args('boxConfig') boxConfig: BoxConfigDto,
+    @Args('boxConfig') boxConfig: BoxConfigInput,
     @Args('signedMessage') signedMessage: string,
   ) {
     return true;

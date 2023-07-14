@@ -5,19 +5,25 @@ import {
   registerEnumType,
 } from '@nestjs/graphql';
 
-@InputType('BoxConfigInput')
-@ObjectType('BoxConfigOutput')
-export class BoxConfigDto {
+@ObjectType('BoxTimingStateOutput')
+@InputType('BoxTimingStateInput')
+export class BoxTimigState {
+  @Field()
+  startedAt: number;
+  @Field()
+  endsAt: number;
+  @Field(() => BoxState)
+  state: BoxState;
+}
+
+@InputType()
+export class BoxConfigInput {
   @Field({ nullable: true })
   boxId: string;
   @Field(() => BoxPool)
   boxPool: BoxPool;
   @Field()
-  executionsCount: number;
-  @Field()
   boxDuration: number;
-  @Field({ nullable: true })
-  boxStart: number;
   @Field({ nullable: true })
   initialDelay?: number;
   @Field({ nullable: true })
@@ -32,6 +38,14 @@ export class BoxConfigDto {
   boxPause: number;
   @Field(() => BoxState)
   boxState: BoxState;
+}
+
+@ObjectType()
+export class BoxConfigOutput extends BoxConfigInput {
+  @Field(() => BoxTimigState)
+  boxTimingState: BoxTimigState;
+  @Field()
+  executionsCount: number;
 }
 
 export enum BoxPool {
@@ -49,6 +63,7 @@ export enum BoxState {
   Active,
   Paused,
   Removed,
+  Cooldown,
 }
 
 registerEnumType(BoxState, { name: 'BoxState' });

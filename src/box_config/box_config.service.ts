@@ -5,8 +5,9 @@ import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { BoxConfigWorker } from './box_config.worker';
 import { BoxConfigRepository } from './repository/box.config.repository';
 import { SaveOrUpdateBoxConfig } from './so/save_update.so';
-import { BoxConfigDto, BoxState } from './types/box_config.types';
-import { InjectRedis, DEFAULT_REDIS_NAMESPACE } from '@liaoliaots/nestjs-redis';
+import { BoxConfigInput, BoxState } from './types/box_config.types';
+import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import * as dayjs from 'dayjs';
 import Redis from 'ioredis';
 @Injectable()
 export class BoxConfigService implements OnModuleInit {
@@ -44,7 +45,7 @@ export class BoxConfigService implements OnModuleInit {
     }
   }
 
-  async saveOrUpdateBoxHandler(box: BoxConfigDto) {
+  async saveOrUpdateBoxHandler(box: BoxConfigInput) {
     const saved = await this.saveOrUpdateBox.execute(box);
     if (!box.boxId) {
       const newWorker = new BoxConfigWorker(
