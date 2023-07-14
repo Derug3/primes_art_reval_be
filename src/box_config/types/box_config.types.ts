@@ -4,6 +4,7 @@ import {
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
+import { Nft } from 'src/nft/entity/nft.entity';
 
 @ObjectType('BoxTimingStateOutput')
 @InputType('BoxTimingStateInput')
@@ -51,7 +52,7 @@ export class BoxConfigOutput extends BoxConfigInput {
   @Field()
   bidsCount: number;
   @Field({ nullable: true })
-  activeNft: string;
+  activeNft?: Nft;
 }
 
 export enum BoxPool {

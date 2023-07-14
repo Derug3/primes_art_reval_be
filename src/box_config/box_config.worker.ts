@@ -11,10 +11,12 @@ import {
 import { sleep } from './utilities/helpers';
 import Redis from 'ioredis';
 import dayjs from 'dayjs';
+import { NftService } from 'src/nft/nft.service';
+import { Nft } from 'src/nft/entity/nft.entity';
 
 export class BoxConfigWorker {
   box: BoxConfig;
-  activeNft: string;
+  activeNft: Nft;
   bidsCount: number;
 
   logger = new Logger(BoxConfigWorker.name);
@@ -24,6 +26,7 @@ export class BoxConfigWorker {
     private readonly boxConfigRepo: BoxConfigRepository,
     boxConfig: BoxConfig,
     private readonly redisService: Redis,
+    private readonly nftService: NftService,
   ) {
     this.box = boxConfig;
     this.bidsCount = 0;
@@ -95,12 +98,24 @@ export class BoxConfigWorker {
 
   async resolveBox() {
     this.logger.log('Resolved box');
+    await this.redisService.del(this.activeNft.nftId);
     this.activeNft = undefined;
   }
 
   async setupBox() {
     this.logger.log('Box setup');
-    this.activeNft = [][Math.round(Math.random() * 199) + 1];
+    const nfts = await this.nftService.getNonMinted();
+
+    let acknowledged = -1;
+
+    do {
+      const randomNft = nfts[Math.round(Math.random() * nfts.length) + 1];
+      acknowledged = await this.redisService.setnx(
+        randomNft.nftId,
+        JSON.stringify(randomNft),
+      );
+      this.activeNft = randomNft;
+    } while (acknowledged < 0);
   }
 
   async publishBox(boxTimingState: BoxTimigState) {

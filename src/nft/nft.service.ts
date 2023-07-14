@@ -32,4 +32,8 @@ export class NftService {
       throw new BadRequestException(error.message);
     }
   }
+
+  getNonMinted() {
+    return this.nftRepository.find({ where: { minted: false } });
+  }
 }

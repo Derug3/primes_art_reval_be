@@ -9,6 +9,7 @@ import { BoxConfigInput, BoxState } from './types/box_config.types';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import * as dayjs from 'dayjs';
 import Redis from 'ioredis';
+import { NftService } from 'src/nft/nft.service';
 @Injectable()
 export class BoxConfigService implements OnModuleInit {
   private saveOrUpdateBox: SaveOrUpdateBoxConfig;
@@ -18,6 +19,7 @@ export class BoxConfigService implements OnModuleInit {
     @InjectRepository(BoxConfigRepository)
     private readonly boxConfigRepo: BoxConfigRepository,
     private readonly subscriptionService: SubscriberService,
+    private readonly nftService: NftService,
     @InjectRedis()
     private readonly redisService: Redis,
   ) {
@@ -37,6 +39,7 @@ export class BoxConfigService implements OnModuleInit {
               this.boxConfigRepo,
               box,
               this.redisService,
+              this.nftService,
             ),
           );
         });
@@ -53,14 +56,16 @@ export class BoxConfigService implements OnModuleInit {
         this.boxConfigRepo,
         saved,
         this.redisService,
+        this.nftService,
       );
       this.workers.push(newWorker);
     }
-    if (saved.boxState === BoxState.Removed) {
-      const index = this.workers.findIndex(
-        (box) => box.box.boxId === saved.boxId,
-      );
-      this.workers.splice(index, 1);
-    }
+    //TODO:think if we should do this?
+    // if (saved.boxState === BoxState.Removed) {
+    //   const index = this.workers.findIndex(
+    //     (box) => box.box.boxId === saved.boxId,
+    //   );
+    //   this.workers.splice(index, 1);
+    // }
   }
 }

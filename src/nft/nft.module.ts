@@ -8,5 +8,6 @@ import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [ConfigModule.forRoot(), TypeOrmModule.forFeature([Nft])],
   providers: [NftResolver, NftService, NftRepository],
+  exports: [NftService],
 })
 export class NftModule {}
