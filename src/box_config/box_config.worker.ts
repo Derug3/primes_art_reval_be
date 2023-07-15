@@ -48,7 +48,9 @@ export class BoxConfigWorker {
     }
     if (this.box.boxId) {
       const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
-      if (newBoxState.boxState === BoxState.Removed) {
+      console.log(newBoxState);
+
+      if (!newBoxState || newBoxState.boxState === BoxState.Removed) {
         this.logger.debug(`Stopping box with id ${this.box.boxId}`);
         this.boxTimingState = {
           endsAt: -1,
@@ -65,9 +67,12 @@ export class BoxConfigWorker {
           state: BoxState.Paused,
         };
         await this.publishBox(this.boxTimingState);
+
+        await this.boxConfigRepo.save({
+          ...this.box,
+          boxState: BoxState.Active,
+        });
         await sleep(newBoxState.boxPause * 1000);
-        this.box.boxState = BoxState.Active;
-        await this.boxConfigRepo.save(this.box);
       }
       this.box = newBoxState;
     }
