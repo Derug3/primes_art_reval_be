@@ -24,4 +24,9 @@ export class BoxConfigResolver {
   getBoxConfigs() {
     return this.boxConfigService.getActiveBoxes();
   }
+
+  @Mutation(() => Boolean)
+  deleteBox(@Args('boxId') boxId: string) {
+    return this.boxConfigService.deleteBox(boxId);
+  }
 }

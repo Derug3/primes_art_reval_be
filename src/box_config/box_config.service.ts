@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RedisService } from 'nestjs-redis';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
@@ -72,5 +77,15 @@ export class BoxConfigService implements OnModuleInit {
 
   getActiveBoxes() {
     return this.workers.map((w) => w.mapToDto());
+  }
+
+  async deleteBox(boxId: string) {
+    try {
+      const boxIndex = this.workers.findIndex((box) => box.box.boxId === boxId);
+      this.workers.splice(boxIndex, 1);
+      await this.boxConfigRepo.delete(boxId);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }
