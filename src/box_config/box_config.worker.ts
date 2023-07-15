@@ -110,11 +110,13 @@ export class BoxConfigWorker {
   }
 
   async resolveBox() {
-    this.logger.log('Resolved box');
-    await this.redisService.del(this.activeNft.nftId);
-    this.activeNft = undefined;
-    this.box.executionsCount += 1;
-    await this.boxConfigRepo.save(this.box);
+    try {
+      this.logger.log('Resolved box');
+      await this.redisService.del(this.activeNft.nftId);
+      this.activeNft = undefined;
+      this.box.executionsCount += 1;
+      await this.boxConfigRepo.save(this.box);
+    } catch (error) {}
   }
 
   async setupBox() {
