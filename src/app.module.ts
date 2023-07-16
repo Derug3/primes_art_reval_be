@@ -28,7 +28,9 @@ import { NftModule } from './nft/nft.module';
       playground: true,
       autoSchemaFile: true,
       include: [BoxConfigModule, NftModule],
-      installSubscriptionHandlers: true,
+      subscriptions: {
+        'graphql-ws': true,
+      },
     }),
     SubscriberModule,
     RedisModule,
