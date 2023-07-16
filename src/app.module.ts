@@ -30,6 +30,7 @@ import { NftModule } from './nft/nft.module';
       include: [BoxConfigModule, NftModule],
       subscriptions: {
         'graphql-ws': true,
+        "subscriptions-transport-ws": true,
       },
     }),
     SubscriberModule,
