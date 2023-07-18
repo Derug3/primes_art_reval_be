@@ -9,6 +9,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { SubscriberModule } from './subscriber/subscriber.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { NftModule } from './nft/nft.module';
+import { HelloResolver } from './graphql/resolvers';
 
 @Module({
   imports: [
@@ -22,7 +23,6 @@ import { NftModule } from './nft/nft.module';
         port: parseInt(process.env.REDIS_PORT) || 6379,
       },
     }),
-
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       playground: true,
@@ -38,6 +38,6 @@ import { NftModule } from './nft/nft.module';
     NftModule,
   ],
 
-  providers: [AppService],
+  providers: [AppService, HelloResolver],
 })
 export class AppModule {}

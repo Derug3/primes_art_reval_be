@@ -1,0 +1,92 @@
+type Nft {
+  nftId: String!
+  nftUri: String!
+  minted: Boolean!
+  owner: String
+  mintedFor: Float
+  mintedAt: String
+  boxType: BoxTypexw
+  reshuffleCount: Float!
+}
+
+enum BoxType {
+  BidBuyNow
+  Bid
+  BuyNow
+}
+
+type BoxTimingStateOutput {
+  startedAt: Float!
+  endsAt: Float!
+  state: BoxState!
+}
+
+enum BoxState {
+  Active
+  Paused
+  Removed
+  Cooldown
+}
+
+type BoxConfigOutput {
+  boxId: String
+  boxPool: BoxPool!
+  boxDuration: Float!
+  initialDelay: Float
+  buyNowPrice: Float
+  bidStartPrice: Float
+  bidIncrease: Float
+  cooldownDuration: Float!
+  boxPause: Float!
+  boxState: BoxState!
+  boxType: BoxType!
+  boxTimingState: BoxTimingStateOutput!
+  executionsCount: Float
+  bidsCount: Float!
+  activeNft: Nft
+}
+
+enum BoxPool {
+  PreSale
+  OG
+  PrimeList
+  Public
+}
+
+input BoxTimingStateInput {
+  startedAt: Float!
+  endsAt: Float!
+  state: BoxState!
+}
+
+type Query {
+  query: String!
+  getBoxConfigs: [BoxConfigOutput!]!
+}
+
+type Mutation {
+  insertNfts(messgeSignature: String!): Boolean!
+  saveOrUpdateBoxConfig(
+    boxConfig: BoxConfigIn!
+    signedMessage: String!
+  ): Boolean!
+  deleteBox(boxId: String!): Boolean!
+}
+
+input BoxConfigIn {
+  boxId: String
+  boxPool: BoxPool!
+  boxDuration: Float!
+  initialDelay: Float
+  buyNowPrice: Float
+  bidStartPrice: Float
+  bidIncrease: Float
+  cooldownDuration: Float!
+  boxPause: Float!
+  boxState: BoxState!
+  boxType: BoxType!
+}
+
+type Subscription {
+  boxConfig: BoxConfigOutput!
+}
