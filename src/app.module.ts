@@ -9,7 +9,6 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { SubscriberModule } from './subscriber/subscriber.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { NftModule } from './nft/nft.module';
-import { HelloResolver } from './graphql/resolvers';
 
 @Module({
   imports: [
@@ -39,6 +38,6 @@ import { HelloResolver } from './graphql/resolvers';
     NftModule,
   ],
 
-  providers: [AppService, HelloResolver],
+  providers: [AppService],
 })
 export class AppModule {}
