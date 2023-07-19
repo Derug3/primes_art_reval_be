@@ -5,7 +5,7 @@ services:
     build: ./
     container_name: primes_api
     ports:
-      - '9000:9000'
+      - 9000:9000
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
