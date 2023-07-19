@@ -23,15 +23,16 @@ import { NftModule } from './nft/nft.module';
       },
     }),
 
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
-      playground: true,
-      autoSchemaFile: true,
-      include: [BoxConfigModule, NftModule],
-      subscriptions: {
-        'graphql-ws': true,
-      },
-    }),
+    // GraphQLModule.forRoot<ApolloDriverConfig>({
+    //   driver: ApolloDriver,
+    //   playground: true,
+    //   autoSchemaFile: true,
+    //   include: [BoxConfigModule, NftModule],
+    //   subscriptions: {
+    //     'graphql-ws': true,
+    //     'subscriptions-transport-ws': true,
+    //   },
+    // }),
     SubscriberModule,
     RedisModule,
     NftModule,
