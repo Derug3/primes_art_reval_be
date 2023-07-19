@@ -14,14 +14,14 @@ import { NftModule } from './nft/nft.module';
   imports: [
     BoxConfigModule,
     TypeOrmModule.forRoot(typeormConfig()),
-    RedisModule.forRoot({
-      config: {
-        host: process.env.REDIS_HOST!,
-        username: process.env.REDIS_USER!,
-        password: process.env.REDIS_PASSWORD!,
-        port: parseInt(process.env.REDIS_PORT) || 6379,
-      },
-    }),
+    // RedisModule.forRoot({
+    //   config: {
+    //     host: process.env.REDIS_HOST!,
+    //     username: process.env.REDIS_USER!,
+    //     password: process.env.REDIS_PASSWORD!,
+    //     port: parseInt(process.env.REDIS_PORT) || 6379,
+    //   },
+    // }),
 
     // GraphQLModule.forRoot<ApolloDriverConfig>({
     //   driver: ApolloDriver,
@@ -33,9 +33,9 @@ import { NftModule } from './nft/nft.module';
     //     'subscriptions-transport-ws': true,
     //   },
     // }),
-    SubscriberModule,
-    RedisModule,
-    NftModule,
+    // SubscriberModule,
+    // RedisModule,
+    // NftModule,
   ],
 
   providers: [AppService],
