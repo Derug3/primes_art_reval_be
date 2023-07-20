@@ -1,4 +1,3 @@
-import bs58 from 'bs58';
 import {
   Connection,
   Keypair,
@@ -11,7 +10,10 @@ import { IDL, ArtReveal } from './idl';
 export const primeBoxSeed = Buffer.from('prime-box');
 export const primeBoxTreasurySeed = Buffer.from('prime-box-treasury');
 export const primeBoxWinnerSeed = Buffer.from('prime-box-winner');
+import * as dotenv from 'dotenv';
+import { decode } from 'bs58';
 
+dotenv.config();
 export const sleep = async (ms: number) => {
   await new Promise((resolve) => setTimeout(resolve, ms));
 };
@@ -21,7 +23,7 @@ export const programId = process.env.PROGRAM_ID!;
 const authority = process.env.AUTHORITY!;
 
 export const getAuthorityAsSigner = () => {
-  const decodedAuthority = Keypair.fromSecretKey(bs58.decode(authority));
+  const decodedAuthority = Keypair.fromSecretKey(decode(authority));
 
   return decodedAuthority;
 };
