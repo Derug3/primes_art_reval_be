@@ -6,6 +6,7 @@ import { BoxConfigRepository } from './repository/box.config.repository';
 import {
   BoxConfigOutput,
   BoxState,
+  BoxStatus,
   BoxTimigState,
 } from './types/box_config.types';
 import {
@@ -13,6 +14,7 @@ import {
   primeBoxSeed,
   program,
   programId,
+  resolveBoxIx,
   sleep,
 } from './utilities/helpers';
 import Redis from 'ioredis';
@@ -20,6 +22,7 @@ import * as dayjs from 'dayjs';
 import { NftService } from 'src/nft/nft.service';
 import { Nft } from 'src/nft/entity/nft.entity';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { resolve } from 'path';
 
 export class BoxConfigWorker {
   box: BoxConfig;
@@ -28,6 +31,7 @@ export class BoxConfigWorker {
   boxTimingState: BoxTimigState;
   currentBid: number;
   bidder: string;
+  boxStatus: BoxStatus;
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -41,6 +45,8 @@ export class BoxConfigWorker {
     this.box = boxConfig;
     this.bidsCount = 0;
     this.currentBid = 0;
+    this.boxStatus = BoxStatus.Bidding;
+
     this.start();
   }
 
@@ -119,13 +125,24 @@ export class BoxConfigWorker {
     await this.start();
   }
 
+  getBoxPda() {
+    return PublicKey.findProgramAddressSync(
+      [primeBoxSeed, Buffer.from(this.box.boxId.split('-')[0])],
+      new PublicKey(programId),
+    )[0];
+  }
+
   async resolveBox() {
     try {
       this.logger.log('Resolved box');
       await this.redisService.del(this.activeNft.nftId);
-      this.activeNft = undefined;
+      const result = await resolveBoxIx(new PublicKey(this.getBoxPda()));
+      if (!result) {
+        this.boxStatus = BoxStatus.Failed;
+      }
       this.box.executionsCount += 1;
       await this.boxConfigRepo.save(this.box);
+      await this.getBox();
     } catch (error) {}
   }
 
@@ -160,6 +177,7 @@ export class BoxConfigWorker {
     const transaction = JSON.parse(serializedTransaction);
     try {
       await parseAndValidatePlaceBidTx(transaction);
+      await this.getBox();
       return true;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -167,16 +185,16 @@ export class BoxConfigWorker {
   }
 
   async getBox() {
-    const [boxAddress] = PublicKey.findProgramAddressSync(
-      [primeBoxSeed, Buffer.from(this.box.boxId.split('-')[0])],
-      new PublicKey(programId),
-    );
+    const boxAddress = this.getBoxPda();
 
     try {
       const boxData = await program.account.boxData.fetch(boxAddress);
       this.bidder =
         boxData.bidder?.toString() ?? boxData.winnerAddress.toString();
       this.currentBid = boxData.activeBid.toNumber() / LAMPORTS_PER_SOL;
+      if (boxData.winnerAddress) {
+        this.boxStatus = BoxStatus.Won;
+      }
       await this.publishBox();
     } catch (error) {
       console.log(error);
@@ -191,6 +209,7 @@ export class BoxConfigWorker {
       activeNft: this.activeNft,
       activeBid: this.currentBid,
       bidder: this.bidder,
+      boxStatus: this.boxStatus,
     };
   }
 }
