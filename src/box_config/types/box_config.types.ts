@@ -55,6 +55,10 @@ export class BoxConfigOutput extends BoxConfigInput {
   bidsCount: number;
   @Field({ nullable: true })
   activeNft?: Nft;
+  @Field({ nullable: true })
+  activeBid: number;
+  @Field({ nullable: true })
+  bidder: string;
 }
 
 export enum BoxPool {

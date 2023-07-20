@@ -29,4 +29,12 @@ export class BoxConfigResolver {
   deleteBox(@Args('boxId') boxId: string) {
     return this.boxConfigService.deleteBox(boxId);
   }
+
+  @Query(() => Boolean)
+  placeBid(
+    @Args('serializedTransaction') serializedTransaction: string,
+    @Args('boxId') boxId: string,
+  ) {
+    return this.boxConfigService.placeBid(serializedTransaction, boxId);
+  }
 }

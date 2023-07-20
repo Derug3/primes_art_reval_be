@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 
 import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { BoxConfig } from './entity/box_config.entity';
@@ -8,17 +8,26 @@ import {
   BoxState,
   BoxTimigState,
 } from './types/box_config.types';
-import { sleep } from './utilities/helpers';
+import {
+  parseAndValidatePlaceBidTx,
+  primeBoxSeed,
+  program,
+  programId,
+  sleep,
+} from './utilities/helpers';
 import Redis from 'ioredis';
 import * as dayjs from 'dayjs';
 import { NftService } from 'src/nft/nft.service';
 import { Nft } from 'src/nft/entity/nft.entity';
+import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 
 export class BoxConfigWorker {
   box: BoxConfig;
   activeNft: Nft;
   bidsCount: number;
   boxTimingState: BoxTimigState;
+  currentBid: number;
+  bidder: string;
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -31,6 +40,7 @@ export class BoxConfigWorker {
   ) {
     this.box = boxConfig;
     this.bidsCount = 0;
+    this.currentBid = 0;
     this.start();
   }
 
@@ -140,10 +150,37 @@ export class BoxConfigWorker {
     } catch (error) {}
   }
 
-  async publishBox(boxTimingState: BoxTimigState) {
+  async publishBox(boxTimingState?: BoxTimigState) {
     await this.subscriberService.pubSub.publish('boxConfig', {
       boxConfig: this.mapToDto(),
     });
+  }
+
+  async placeBid(serializedTransaction: string) {
+    const transaction = JSON.parse(serializedTransaction);
+    try {
+      await parseAndValidatePlaceBidTx(transaction);
+      return true;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async getBox() {
+    const [boxAddress] = PublicKey.findProgramAddressSync(
+      [primeBoxSeed, Buffer.from(this.box.boxId.split('-')[0])],
+      new PublicKey(programId),
+    );
+
+    try {
+      const boxData = await program.account.boxData.fetch(boxAddress);
+      this.bidder =
+        boxData.bidder?.toString() ?? boxData.winnerAddress.toString();
+      this.currentBid = boxData.activeBid.toNumber() / LAMPORTS_PER_SOL;
+      await this.publishBox();
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   mapToDto(): BoxConfigOutput {
@@ -152,6 +189,8 @@ export class BoxConfigWorker {
       boxTimingState: this.boxTimingState,
       bidsCount: this.bidsCount,
       activeNft: this.activeNft,
+      activeBid: this.currentBid,
+      bidder: this.bidder,
     };
   }
 }

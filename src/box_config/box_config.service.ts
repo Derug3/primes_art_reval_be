@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   Logger,
+  NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -95,5 +96,14 @@ export class BoxConfigService implements OnModuleInit {
     } catch (error) {
       throw new BadRequestException(error.message);
     }
+  }
+
+  async placeBid(serializedTx: string, boxId: string) {
+    const box = this.workers.find((b) => b.box.boxId === boxId);
+
+    if (!box || box.box.boxState !== BoxState.Active)
+      throw new NotFoundException('Given box not found!');
+
+    return box.placeBid(serializedTx);
   }
 }
