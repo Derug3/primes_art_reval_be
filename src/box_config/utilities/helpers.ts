@@ -207,7 +207,7 @@ export const claimNft = async (tx: any) => {
 
     const signer = getAuthorityAsSigner();
 
-    transaction.partialSign(signer);
+    transaction.sign(signer);
 
     const txSig = await connection.sendRawTransaction(transaction.serialize());
     await connection.confirmTransaction(txSig);
