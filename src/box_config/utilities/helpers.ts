@@ -54,21 +54,8 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
       throw new Error('Invalid program id');
     }
 
-    //TODO:comment in later
-    // const serializedDiscriminator = Buffer.from(
-    //   bs58.encode(Buffer.from('global:place_bid')),
-    // );
-
-    // if (
-    //   transaction.instructions[0].data.subarray(0, 8) !==
-    //   serializedDiscriminator
-    // ) {
-    //   throw new Error('Invalid instruction!');
-    // }
-
     const authority = getAuthorityAsSigner();
 
-    //TODO:get payer from tx and check his user role
     const _payer = transaction.instructions[0].keys[3].pubkey;
 
     transaction.sign(authority);
@@ -214,12 +201,12 @@ export const claimNft = async (tx: any) => {
 
     const signer = getAuthorityAsSigner();
 
-    transaction.sign(signer);
+    transaction.partialSign(signer);
 
     await connection.sendRawTransaction(transaction.serialize());
     return true;
   } catch (error) {
-    console.log(error);
+    console.log(error, 'ERRRROOORR');
 
     throw new BadRequestException(error.message);
   }
