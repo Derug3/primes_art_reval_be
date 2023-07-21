@@ -138,9 +138,9 @@ export class BoxConfigWorker {
       await this.redisService.del(this.activeNft.nftId);
 
       const result = await resolveBoxIx(new PublicKey(this.getBoxPda()));
-      if (!result) {
-        this.boxStatus = BoxStatus.Failed;
-      }
+      // if (!result) {
+      //   this.boxStatus = BoxStatus.Failed;
+      // }
       this.box.executionsCount += 1;
       await this.boxConfigRepo.save(this.box);
       await this.getBox();

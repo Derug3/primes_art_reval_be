@@ -164,39 +164,44 @@ export const initBoxIx = async (
   box: BoxConfig,
   nft: Nft,
 ) => {
-  const authority = getAuthorityAsSigner();
+  try {
+    const authority = getAuthorityAsSigner();
 
-  const ix = await program.methods
-    .initBox(boxId.split('-')[0], {
-      bidIncrease: new BN(box.bidIncrease * LAMPORTS_PER_SOL),
-      bidStartPrice: new BN(box.bidStartPrice),
-      buyNowPrice: new BN(box.buyNowPrice * LAMPORTS_PER_SOL),
-      nftId: nft.nftId.split('-')[0],
-      nftUri: nft.nftUri,
-      boxPool: parseBoxPool(box.boxPool),
-      boxType: parseBoxType(box.boxType),
-    })
-    .accounts({
-      boxData: boxAddress,
-      payer: authority.publicKey,
-      systemProgram: SystemProgram.programId,
-    })
-    .instruction();
+    const ix = await program.methods
+      .initBox(boxId.split('-')[0], {
+        bidIncrease: new BN(box.bidIncrease * LAMPORTS_PER_SOL),
+        bidStartPrice: new BN(box.bidStartPrice),
+        buyNowPrice: new BN(box.buyNowPrice * LAMPORTS_PER_SOL),
+        nftId: nft.nftId.split('-')[0],
+        nftUri: nft.nftUri,
+        boxPool: parseBoxPool(box.boxPool),
+        boxType: parseBoxType(box.boxType),
+      })
+      .accounts({
+        boxData: boxAddress,
+        payer: authority.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
 
-  const tx = new Transaction({
-    feePayer: authority.publicKey,
-    recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-  });
+    const tx = new Transaction({
+      feePayer: authority.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+    });
 
-  tx.add(ix);
+    tx.add(ix);
 
-  tx.sign(authority);
+    tx.sign(authority);
 
-  const txSig = await connection.sendRawTransaction(tx.serialize());
+    const txSig = await connection.sendRawTransaction(tx.serialize());
 
-  console.log(txSig);
+    console.log(txSig);
 
-  await connection.confirmTransaction(txSig);
+    await connection.confirmTransaction(txSig);
+    return true;
+  } catch (error) {
+    return false;
+  }
 };
 
 export const claimNft = async (tx: any) => {
