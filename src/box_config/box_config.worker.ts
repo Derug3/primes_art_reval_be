@@ -10,6 +10,7 @@ import {
   BoxTimigState,
 } from './types/box_config.types';
 import {
+  initBoxIx,
   parseAndValidatePlaceBidTx,
   primeBoxSeed,
   program,
@@ -59,7 +60,6 @@ export class BoxConfigWorker {
         state: BoxState.Paused,
       };
       await this.publishBox(this.boxTimingState);
-      this.logger.log(`Initial delay of ${this.box.initialDelay} seconds`);
       await sleep(this.box.initialDelay * 1000);
     }
     if (this.box.boxId) {
@@ -99,7 +99,8 @@ export class BoxConfigWorker {
       startedAt: dayjs().unix(),
       state: BoxState.Active,
     };
-    await this.publishBox(this.boxTimingState);
+    await initBoxIx(this.getBoxPda(), this.box.boxId, this.box, this.activeNft);
+    await this.getBox();
 
     this.logger.log('Box emitted');
 
@@ -107,10 +108,8 @@ export class BoxConfigWorker {
 
     await this.cooldown();
   }
-
   async cooldown() {
     await this.resolveBox();
-
     if (this.box.cooldownDuration > 0) {
       this.logger.log('Cooldown started');
       this.boxTimingState = {
@@ -119,9 +118,11 @@ export class BoxConfigWorker {
         state: BoxState.Cooldown,
       };
       await this.publishBox(this.boxTimingState);
+      await this.subscriberService.pubSub.publish('wonNft', {
+        wonNft: this.mapToDto(),
+      });
       await sleep(this.box.cooldownDuration * 1000);
     }
-
     await this.start();
   }
 
@@ -131,11 +132,11 @@ export class BoxConfigWorker {
       new PublicKey(programId),
     )[0];
   }
-
   async resolveBox() {
     try {
       this.logger.log('Resolved box');
       await this.redisService.del(this.activeNft.nftId);
+
       const result = await resolveBoxIx(new PublicKey(this.getBoxPda()));
       if (!result) {
         this.boxStatus = BoxStatus.Failed;
@@ -175,6 +176,7 @@ export class BoxConfigWorker {
 
   async placeBid(serializedTransaction: string) {
     const transaction = JSON.parse(serializedTransaction);
+
     try {
       await parseAndValidatePlaceBidTx(transaction);
       await this.getBox();
@@ -190,7 +192,7 @@ export class BoxConfigWorker {
     try {
       const boxData = await program.account.boxData.fetch(boxAddress);
       this.bidder =
-        boxData.bidder?.toString() ?? boxData.winnerAddress.toString();
+        boxData.bidder?.toString() ?? boxData.winnerAddress?.toString();
       this.currentBid = boxData.activeBid.toNumber() / LAMPORTS_PER_SOL;
       if (boxData.winnerAddress) {
         this.boxStatus = BoxStatus.Won;
@@ -200,7 +202,6 @@ export class BoxConfigWorker {
       console.log(error);
     }
   }
-
   mapToDto(): BoxConfigOutput {
     return {
       ...this.box,

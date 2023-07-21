@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Subscription } from '@nestjs/graphql';
 import { BoxConfigService } from './box_config.service';
 import { BoxConfigInput, BoxConfigOutput } from './types/box_config.types';
 
@@ -30,11 +30,16 @@ export class BoxConfigResolver {
     return this.boxConfigService.deleteBox(boxId);
   }
 
-  @Query(() => Boolean)
+  @Mutation(() => Boolean)
   placeBid(
     @Args('serializedTransaction') serializedTransaction: string,
     @Args('boxId') boxId: string,
   ) {
     return this.boxConfigService.placeBid(serializedTransaction, boxId);
+  }
+
+  @Mutation(() => Boolean)
+  claimNft(@Args('serializedTx') serializedTx: string) {
+    return this.boxConfigService.claimBoxNft(serializedTx);
   }
 }

@@ -13,9 +13,9 @@ import { BoxConfigRepository } from './repository/box.config.repository';
 import { SaveOrUpdateBoxConfig } from './so/save_update.so';
 import { BoxConfigInput, BoxState } from './types/box_config.types';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
-import * as dayjs from 'dayjs';
 import Redis from 'ioredis';
 import { NftService } from 'src/nft/nft.service';
+import { claimNft } from './utilities/helpers';
 @Injectable()
 export class BoxConfigService implements OnModuleInit {
   private saveOrUpdateBox: SaveOrUpdateBoxConfig;
@@ -68,12 +68,12 @@ export class BoxConfigService implements OnModuleInit {
       this.workers.push(newWorker);
     }
     //TODO:think if we should do this?
-    // if (saved.boxState === BoxState.Removed) {
-    //   const index = this.workers.findIndex(
-    //     (box) => box.box.boxId === saved.boxId,
-    //   );
-    //   this.workers.splice(index, 1);
-    // }
+    if (saved.boxState === BoxState.Removed) {
+      const index = this.workers.findIndex(
+        (box) => box.box.boxId === saved.boxId,
+      );
+      this.workers.splice(index, 1);
+    }
   }
 
   getActiveBoxes() {
@@ -105,5 +105,9 @@ export class BoxConfigService implements OnModuleInit {
       throw new NotFoundException('Given box not found!');
 
     return box.placeBid(serializedTx);
+  }
+
+  async claimBoxNft(tx: any) {
+    return await claimNft(tx);
   }
 }

@@ -1,17 +1,23 @@
 import {
   Connection,
   Keypair,
+  LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   Transaction,
 } from '@solana/web3.js';
-import { AnchorProvider, Program, Wallet } from '@project-serum/anchor';
+import { AnchorProvider, BN, Program, Wallet } from '@project-serum/anchor';
 import { IDL, ArtReveal } from './idl';
 export const primeBoxSeed = Buffer.from('prime-box');
 export const primeBoxTreasurySeed = Buffer.from('prime-box-treasury');
 export const primeBoxWinnerSeed = Buffer.from('prime-box-winner');
 import * as dotenv from 'dotenv';
 import { decode } from 'bs58';
+import { BoxConfig } from '../entity/box_config.entity';
+import { Nft } from 'src/nft/entity/nft.entity';
+import { BoxType } from 'src/enum/enums';
+import { BoxPool } from '../types/box_config.types';
+import { BadRequestException } from '@nestjs/common';
 
 dotenv.config();
 export const sleep = async (ms: number) => {
@@ -38,7 +44,9 @@ export const program = new Program<ArtReveal>(
 
 export const parseAndValidatePlaceBidTx = async (tx: any) => {
   try {
-    const transaction = Transaction.from(tx);
+    const transaction = Transaction.from(tx.data);
+
+    console.log(transaction);
 
     if (transaction.instructions.length > 1) {
       throw new Error('Invalid instructions amount!');
@@ -69,6 +77,8 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
 
     await connection.sendRawTransaction(transaction.serialize());
   } catch (error) {
+    console.log(error);
+
     throw error;
   }
 };
@@ -87,7 +97,7 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
     const [winningProof] = PublicKey.findProgramAddressSync(
       [
         primeBoxWinnerSeed,
-        boxData.winnerAddress?.toBuffer() ?? boxData.bidder.toBuffer(),
+        boxData.winnerAddress?.toBuffer() ?? boxData.bidder?.toBuffer(),
         Buffer.from(boxData.nftId),
       ],
       program.programId,
@@ -116,5 +126,98 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
     console.log(error);
 
     return false;
+  }
+};
+
+export const parseBoxPool = (boxPool: BoxPool) => {
+  switch (boxPool) {
+    case BoxPool.OG: {
+      return { oG: {} };
+    }
+    case BoxPool.PreSale: {
+      return { preSale: {} };
+    }
+    case BoxPool.PrimeList: {
+      return { primeList: {} };
+    }
+    case BoxPool.Public: {
+      return { public: {} };
+    }
+  }
+};
+
+export const parseBoxType = (boxType: BoxType) => {
+  switch (boxType) {
+    case BoxType.Bid: {
+      return { bid: {} };
+    }
+    case BoxType.BidBuyNow: {
+      return { bidBuy: {} };
+    }
+    case BoxType.BuyNow: {
+      return { buy: {} };
+    }
+  }
+};
+
+export const initBoxIx = async (
+  boxAddress: PublicKey,
+  boxId: string,
+  box: BoxConfig,
+  nft: Nft,
+) => {
+  const authority = getAuthorityAsSigner();
+
+  const ix = await program.methods
+    .initBox(boxId.split('-')[0], {
+      bidIncrease: new BN(box.bidIncrease * LAMPORTS_PER_SOL),
+      bidStartPrice: new BN(box.bidStartPrice),
+      buyNowPrice: new BN(box.buyNowPrice * LAMPORTS_PER_SOL),
+      nftId: nft.nftId.split('-')[0],
+      nftUri: nft.nftUri,
+      boxPool: { public: {} },
+      boxType: { bid: {} },
+    })
+    .accounts({
+      boxData: boxAddress,
+      payer: authority.publicKey,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+
+  const tx = new Transaction({
+    feePayer: authority.publicKey,
+    recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+  });
+
+  tx.add(ix);
+
+  tx.sign(authority);
+
+  const txSig = await connection.sendRawTransaction(tx.serialize());
+
+  console.log(txSig);
+
+  await connection.confirmTransaction(txSig);
+};
+
+export const claimNft = async (tx: any) => {
+  try {
+    const transaction = Transaction.from(tx.data);
+    if (transaction.instructions.length > 0) {
+      throw new Error('Invalid instructions count!');
+    }
+    if (transaction.instructions[0].programId.toString() !== programId) {
+      throw new Error('Invalid program id');
+    }
+
+    const signer = getAuthorityAsSigner();
+
+    transaction.sign(signer);
+
+    await connection.sendRawTransaction(transaction.serialize());
+    return true;
+  } catch (error) {
+    throw new BadRequestException(error.message);
   }
 };
