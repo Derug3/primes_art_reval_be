@@ -34,7 +34,7 @@ export const getAuthorityAsSigner = () => {
   return decodedAuthority;
 };
 export const connection = new Connection(process.env.SOLANA_RPC_ENDPOINT!, {
-  commitment: 'confirmed',
+  commitment: 'finalized',
 });
 export const program = new Program<ArtReveal>(
   IDL,
