@@ -79,7 +79,6 @@ export class BoxConfigWorker {
           startedAt: dayjs().unix(),
           state: BoxState.Paused,
         };
-        this.box.boxState = BoxState.Active;
         await this.publishBox(this.boxTimingState);
 
         await this.boxConfigRepo.save({
