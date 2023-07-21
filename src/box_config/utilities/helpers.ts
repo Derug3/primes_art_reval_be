@@ -164,7 +164,9 @@ export const initBoxIx = async (
       .initBox(boxId.split('-')[0], {
         bidIncrease: new BN(box.bidIncrease * LAMPORTS_PER_SOL),
         bidStartPrice: new BN(box.bidStartPrice),
-        buyNowPrice: new BN(box.buyNowPrice * LAMPORTS_PER_SOL),
+        buyNowPrice: box.buyNowPrice
+          ? new BN(box.buyNowPrice * LAMPORTS_PER_SOL)
+          : null,
         nftId: nft.nftId.split('-')[0],
         nftUri: nft.nftUri,
         boxPool: parseBoxPool(box.boxPool),
