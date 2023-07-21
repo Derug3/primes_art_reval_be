@@ -101,8 +101,7 @@ export class BoxConfigService implements OnModuleInit {
   async placeBid(serializedTx: string, boxId: string) {
     const box = this.workers.find((b) => b.box.boxId === boxId);
 
-    if (!box || box.box.boxState !== BoxState.Active)
-      throw new NotFoundException('Given box not found!');
+    if (!box) throw new NotFoundException('Given box not found!');
 
     return box.placeBid(serializedTx);
   }
