@@ -48,6 +48,8 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
   try {
     const transaction = Transaction.from(tx.data);
 
+    console.log(transaction, 'TXXX');
+
     if (transaction.instructions.length > 1) {
       throw new Error('Invalid instructions amount!');
     }
@@ -57,8 +59,6 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
     }
 
     const authority = getAuthorityAsSigner();
-
-    const _payer = transaction.instructions[0].keys[3].pubkey;
 
     transaction.sign(authority);
 
