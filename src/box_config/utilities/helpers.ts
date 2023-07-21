@@ -208,8 +208,6 @@ export const claimNft = async (tx: any) => {
     );
     return true;
   } catch (error) {
-    console.log(error, 'ERRRROOORR');
-
     throw new BadRequestException(error.message);
   }
 };

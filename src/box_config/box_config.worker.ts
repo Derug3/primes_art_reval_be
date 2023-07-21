@@ -6,7 +6,6 @@ import { BoxConfigRepository } from './repository/box.config.repository';
 import {
   BoxConfigOutput,
   BoxState,
-  BoxStatus,
   BoxTimigState,
 } from './types/box_config.types';
 import {
@@ -32,7 +31,6 @@ export class BoxConfigWorker {
   boxTimingState: BoxTimigState;
   currentBid: number;
   bidder: string;
-  boxStatus: BoxStatus;
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -46,7 +44,6 @@ export class BoxConfigWorker {
     this.box = boxConfig;
     this.bidsCount = 0;
     this.currentBid = 0;
-    this.boxStatus = BoxStatus.Bidding;
 
     this.start();
   }
@@ -82,6 +79,7 @@ export class BoxConfigWorker {
           startedAt: dayjs().unix(),
           state: BoxState.Paused,
         };
+        this.box.boxState = BoxState.Active;
         await this.publishBox(this.boxTimingState);
 
         await this.boxConfigRepo.save({
@@ -137,11 +135,8 @@ export class BoxConfigWorker {
       this.logger.log('Resolved box');
       await this.redisService.del(this.activeNft.nftId);
 
-      const result = await resolveBoxIx(new PublicKey(this.getBoxPda()));
-      // if (!result) {
-      //   this.boxStatus = BoxStatus.Failed;
-      // }
       this.box.executionsCount += 1;
+      this.box.boxState = BoxState.Cooldown;
       await this.boxConfigRepo.save(this.box);
       await this.getBox();
     } catch (error) {}
@@ -196,7 +191,7 @@ export class BoxConfigWorker {
 
       this.currentBid = boxData.activeBid.toNumber() / LAMPORTS_PER_SOL;
       if (boxData.winnerAddress) {
-        this.boxStatus = BoxStatus.Won;
+        this.box.boxState = BoxState.Won;
       }
       await this.publishBox();
     } catch (error) {
@@ -211,7 +206,6 @@ export class BoxConfigWorker {
       activeNft: this.activeNft,
       activeBid: this.currentBid,
       bidder: this.bidder,
-      boxStatus: this.boxStatus,
     };
   }
 }
