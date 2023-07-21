@@ -135,6 +135,7 @@ export class BoxConfigWorker {
   async resolveBox() {
     try {
       this.logger.log('Resolved box');
+      await resolveBoxIx(this.getBoxPda());
       await this.redisService.del(this.activeNft.nftId);
 
       this.box.executionsCount += 1;
