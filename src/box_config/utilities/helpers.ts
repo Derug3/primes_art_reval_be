@@ -60,7 +60,9 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
 
     transaction.sign(authority);
 
-    await connection.sendRawTransaction(transaction.serialize());
+    await connection.sendRawTransaction(
+      transaction.serialize({ requireAllSignatures: false }),
+    );
   } catch (error) {
     console.log(error);
 
