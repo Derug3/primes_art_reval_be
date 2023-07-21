@@ -136,7 +136,7 @@ export class BoxConfigWorker {
       await this.redisService.del(this.activeNft.nftId);
 
       this.box.executionsCount += 1;
-      this.box.boxState = BoxState.Cooldown;
+
       await this.boxConfigRepo.save(this.box);
       await this.getBox();
     } catch (error) {}
