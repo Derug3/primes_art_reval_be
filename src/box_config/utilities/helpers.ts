@@ -77,7 +77,7 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
   } catch (error) {
     console.log(error);
 
-    throw error;
+    throw new BadRequestException(parseTransactionError(error));
   }
 };
 
@@ -216,6 +216,29 @@ export const claimNft = async (tx: any) => {
     await connection.sendRawTransaction(transaction.serialize());
     return true;
   } catch (error) {
-    throw new BadRequestException(error.message);
+    throw new BadRequestException(parseTransactionError(error));
+  }
+};
+
+export const parseTransactionError = (data: any) => {
+  const parsedData = JSON.parse(JSON.stringify(data));
+
+  if (
+    parsedData.logs.find(
+      (log: any) => log.includes('lamports') || log.includes('NotEnoughSOL'),
+    )
+  ) {
+    return 'Insufficient balance for transaction';
+  }
+
+  const log = parsedData.logs.find((log: string) =>
+    log.includes('AnchorError'),
+  );
+
+  if (log) {
+    const slicedData = +log.split('Error Number:')[1].split('.')[0].trim();
+    const err = program.idl.errors.find((err) => err.code === slicedData)?.msg;
+
+    return err;
   }
 };
