@@ -203,7 +203,9 @@ export const claimNft = async (tx: any) => {
 
     transaction.partialSign(signer);
 
-    await connection.sendRawTransaction(transaction.serialize());
+    await connection.sendRawTransaction(
+      transaction.serialize({ requireAllSignatures: false }),
+    );
     return true;
   } catch (error) {
     console.log(error, 'ERRRROOORR');
