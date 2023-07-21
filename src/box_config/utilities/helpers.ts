@@ -62,7 +62,8 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
 
     transaction.sign(authority);
 
-    await connection.sendRawTransaction(transaction.serialize());
+    const txSig = await connection.sendRawTransaction(transaction.serialize());
+    await connection.confirmTransaction(txSig);
   } catch (error) {
     console.log(error);
 
@@ -205,9 +206,10 @@ export const claimNft = async (tx: any) => {
 
     transaction.partialSign(signer);
 
-    await connection.sendRawTransaction(
+    const txSig = await connection.sendRawTransaction(
       transaction.serialize({ requireAllSignatures: false }),
     );
+    await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
     throw new BadRequestException(error.message);
