@@ -42,4 +42,9 @@ export class BoxConfigResolver {
   claimNft(@Args('serializedTx') serializedTx: string) {
     return this.boxConfigService.claimBoxNft(serializedTx);
   }
+
+  @Mutation(() => Boolean)
+  deleteAllBoxes() {
+    return this.boxConfigService.deleteAllBoxes();
+  }
 }

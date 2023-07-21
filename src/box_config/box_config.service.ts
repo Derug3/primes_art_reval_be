@@ -110,4 +110,9 @@ export class BoxConfigService implements OnModuleInit {
   async claimBoxNft(tx: any) {
     return await claimNft(tx);
   }
+
+  async deleteAllBoxes() {
+    await this.boxConfigRepo.delete({});
+    return true;
+  }
 }
