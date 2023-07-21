@@ -31,6 +31,7 @@ export class BoxConfigWorker {
   boxTimingState: BoxTimigState;
   currentBid: number;
   bidder: string;
+  isWon: boolean;
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -43,6 +44,7 @@ export class BoxConfigWorker {
   ) {
     this.box = boxConfig;
     this.bidsCount = 0;
+    this.isWon = false;
     this.currentBid = 0;
 
     this.start();
@@ -50,6 +52,7 @@ export class BoxConfigWorker {
 
   async start() {
     this.logger.debug(`Starting box ${this.box.boxId}`);
+    this.isWon = false;
     if (this.box.initialDelay && this.box.executionsCount === 0) {
       this.boxTimingState = {
         endsAt: dayjs().add(this.box.initialDelay, 'seconds').unix(),
@@ -190,7 +193,7 @@ export class BoxConfigWorker {
 
       this.currentBid = boxData.activeBid.toNumber() / LAMPORTS_PER_SOL;
       if (boxData.winnerAddress) {
-        this.box.boxState = BoxState.Won;
+        this.isWon = true;
       }
       await this.publishBox();
     } catch (error) {
@@ -205,6 +208,7 @@ export class BoxConfigWorker {
       activeNft: this.activeNft,
       activeBid: this.currentBid,
       bidder: this.bidder,
+      isWon: this.isWon,
     };
   }
 }

@@ -59,6 +59,8 @@ export class BoxConfigOutput extends BoxConfigInput {
   activeBid: number;
   @Field({ nullable: true })
   bidder: string;
+  @Field()
+  isWon: boolean;
 }
 
 export enum BoxPool {
@@ -77,7 +79,6 @@ export enum BoxState {
   Paused,
   Removed,
   Cooldown,
-  Won,
 }
 
 registerEnumType(BoxState, { name: 'BoxState' });
