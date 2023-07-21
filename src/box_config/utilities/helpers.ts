@@ -206,11 +206,9 @@ export const initBoxIx = async (
 
 export const claimNft = async (tx: any) => {
   try {
-    const transaction = Transaction.from(tx.data);
-    if (transaction.instructions.length > 0) {
-      throw new Error('Invalid instructions count!');
-    }
-    if (transaction.instructions[0].programId.toString() !== programId) {
+    const transaction = Transaction.from(JSON.parse(tx).data);
+
+    if (transaction.instructions[1].programId.toString() !== programId) {
       throw new Error('Invalid program id');
     }
 
