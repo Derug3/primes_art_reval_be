@@ -117,7 +117,7 @@ export class BoxConfigWorker {
         endsAt: dayjs().add(this.box.cooldownDuration, 'seconds').unix(),
         state: BoxState.Cooldown,
       };
-      await this.publishBox(this.boxTimingState);
+      await this.getBox();
       await this.subscriberService.pubSub.publish('wonNft', {
         wonNft: this.mapToDto(),
       });
