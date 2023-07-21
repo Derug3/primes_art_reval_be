@@ -48,8 +48,6 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
   try {
     const transaction = Transaction.from(tx.data);
 
-    console.log(transaction, 'TXXX');
-
     if (transaction.instructions.length > 1) {
       throw new Error('Invalid instructions amount!');
     }
@@ -61,8 +59,11 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
     const authority = getAuthorityAsSigner();
 
     transaction.sign(authority);
+    console.log(transaction, 'TXXX');
 
-    const txSig = await connection.sendRawTransaction(transaction.serialize());
+    const txSig = await connection.sendRawTransaction(
+      transaction.serialize({ requireAllSignatures: false }),
+    );
     await connection.confirmTransaction(txSig);
   } catch (error) {
     console.log(error);
