@@ -444,13 +444,13 @@ export type ArtReveal = {
         kind: 'enum';
         variants: [
           {
-            name: 'PreSale';
+            name: 'Presale';
           },
           {
             name: 'OG';
           },
           {
-            name: 'PrimeList';
+            name: 'Primelist';
           },
           {
             name: 'Public';
@@ -464,7 +464,7 @@ export type ArtReveal = {
         kind: 'enum';
         variants: [
           {
-            name: 'BidBuy';
+            name: 'Bidbuy';
           },
           {
             name: 'Bid';
@@ -991,13 +991,13 @@ export const IDL: ArtReveal = {
         kind: 'enum',
         variants: [
           {
-            name: 'PreSale',
+            name: 'Presale',
           },
           {
             name: 'OG',
           },
           {
-            name: 'PrimeList',
+            name: 'Primelist',
           },
           {
             name: 'Public',
@@ -1011,7 +1011,7 @@ export const IDL: ArtReveal = {
         kind: 'enum',
         variants: [
           {
-            name: 'BidBuy',
+            name: 'Bidbuy',
           },
           {
             name: 'Bid',

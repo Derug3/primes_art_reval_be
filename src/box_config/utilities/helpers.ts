@@ -46,8 +46,6 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
   try {
     const transaction = Transaction.from(tx.data);
 
-    console.log(transaction);
-
     if (transaction.instructions.length > 1) {
       throw new Error('Invalid instructions amount!');
     }
@@ -132,13 +130,13 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
 export const parseBoxPool = (boxPool: BoxPool) => {
   switch (boxPool) {
     case BoxPool.OG: {
-      return { oG: {} };
+      return { og: {} };
     }
     case BoxPool.PreSale: {
-      return { preSale: {} };
+      return { presale: {} };
     }
     case BoxPool.PrimeList: {
-      return { primeList: {} };
+      return { primelist: {} };
     }
     case BoxPool.Public: {
       return { public: {} };
@@ -152,7 +150,7 @@ export const parseBoxType = (boxType: BoxType) => {
       return { bid: {} };
     }
     case BoxType.BidBuyNow: {
-      return { bidBuy: {} };
+      return { bidbuy: {} };
     }
     case BoxType.BuyNow: {
       return { buy: {} };
@@ -175,8 +173,8 @@ export const initBoxIx = async (
       buyNowPrice: new BN(box.buyNowPrice * LAMPORTS_PER_SOL),
       nftId: nft.nftId.split('-')[0],
       nftUri: nft.nftUri,
-      boxPool: { public: {} },
-      boxType: { bid: {} },
+      boxPool: parseBoxPool(box.boxPool),
+      boxType: parseBoxType(box.boxType),
     })
     .accounts({
       boxData: boxAddress,
