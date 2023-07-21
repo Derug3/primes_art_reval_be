@@ -9,7 +9,13 @@ export class Nft {
   @PrimaryGeneratedColumn('uuid')
   nftId: string;
   @Field()
-  @Column()
+  @Column({ nullable: true })
+  nftImage: string;
+  @Field()
+  @Column({ nullable: true })
+  nftName: string;
+  @Field()
+  @Column({ nullable: true })
   nftUri: string;
   @Field()
   @Column({ default: false })

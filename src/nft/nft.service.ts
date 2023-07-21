@@ -18,12 +18,20 @@ export class NftService {
 
       const cdnNfts = await (await fetch(cdnUrl, { method: 'GET' })).json();
 
-      const nfts: Nft[] = cdnNfts.map((nftUri: any) => {
-        const nft = new Nft();
-        nft.nftUri = nftUri;
-        nft.reshuffleCount = 0;
-        return nft;
-      });
+      await this.nftRepository.delete({});
+
+      const nfts: Nft[] = await Promise.all(
+        cdnNfts.map(async (nftUri: any) => {
+          const nft = new Nft();
+          const nftData = await (await fetch(nftUri)).json();
+          nft.nftUri = nftUri;
+          nft.nftName = nftData.name;
+          nft.reshuffleCount = 0;
+          nft.nftImage = nftData.image;
+          return nft;
+        }),
+      );
+      console.log(nfts.length);
 
       await this.nftRepository.save(nfts);
 
