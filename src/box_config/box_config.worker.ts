@@ -189,6 +189,8 @@ export class BoxConfigWorker {
 
     try {
       const boxData = await program.account.boxData.fetch(boxAddress);
+      console.log(boxData, 'BOX DATA');
+
       this.bidder =
         boxData.bidder?.toString() ?? boxData.winnerAddress?.toString();
 
