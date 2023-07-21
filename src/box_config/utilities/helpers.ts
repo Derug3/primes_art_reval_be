@@ -1,4 +1,5 @@
 import {
+  ComputeBudgetProgram,
   Connection,
   Keypair,
   LAMPORTS_PER_SOL,
@@ -48,17 +49,18 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
   try {
     const transaction = Transaction.from(tx.data);
 
-    if (transaction.instructions.length > 1) {
-      throw new Error('Invalid instructions amount!');
-    }
+    const instructionsWithoutCb = transaction.instructions.filter(
+      (ix) =>
+        ix.programId.toString() !== ComputeBudgetProgram.programId.toString(),
+    );
 
-    if (transaction.instructions[0].programId.toString() !== programId) {
+    if (instructionsWithoutCb[0].programId.toString() !== programId) {
       throw new Error('Invalid program id');
     }
 
     const authority = getAuthorityAsSigner();
 
-    transaction.sign(authority);
+    transaction.partialSign(authority);
     console.log(transaction, 'TXXX');
 
     const txSig = await connection.sendRawTransaction(
@@ -221,7 +223,7 @@ export const parseTransactionError = (data: any) => {
   const parsedData = JSON.parse(JSON.stringify(data));
 
   if (
-    parsedData.logs.find(
+    parsedData.logs?.find(
       (log: any) => log.includes('lamports') || log.includes('NotEnoughSOL'),
     )
   ) {
