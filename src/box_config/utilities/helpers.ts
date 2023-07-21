@@ -221,7 +221,9 @@ export const claimNft = async (tx: any) => {
     await connection.sendRawTransaction(transaction.serialize());
     return true;
   } catch (error) {
-    throw new BadRequestException(parseTransactionError(error));
+    console.log(error);
+
+    throw new BadRequestException(error.message);
   }
 };
 

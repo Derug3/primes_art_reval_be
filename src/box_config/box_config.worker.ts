@@ -193,7 +193,6 @@ export class BoxConfigWorker {
       const boxData = await program.account.boxData.fetch(boxAddress);
       this.bidder =
         boxData.bidder?.toString() ?? boxData.winnerAddress?.toString();
-      console.log(boxData.winnerAddress, 'WADDR');
 
       this.currentBid = boxData.activeBid.toNumber() / LAMPORTS_PER_SOL;
       if (boxData.winnerAddress) {
