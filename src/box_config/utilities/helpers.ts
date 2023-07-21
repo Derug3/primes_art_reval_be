@@ -34,7 +34,7 @@ export const getAuthorityAsSigner = () => {
   return decodedAuthority;
 };
 export const connection = new Connection(process.env.SOLANA_RPC_ENDPOINT!, {
-  commitment: 'finalized',
+  commitment: 'confirmed',
 });
 export const program = new Program<ArtReveal>(
   IDL,
@@ -60,9 +60,7 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
 
     transaction.sign(authority);
 
-    await connection.sendRawTransaction(
-      transaction.serialize({ requireAllSignatures: false }),
-    );
+    await connection.sendRawTransaction(transaction.serialize());
   } catch (error) {
     console.log(error);
 
