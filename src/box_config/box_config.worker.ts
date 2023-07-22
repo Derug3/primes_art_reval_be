@@ -55,6 +55,7 @@ export class BoxConfigWorker {
     this.currentBid = 0;
     this.bidder = undefined;
     this.isWon = false;
+
     if (this.box.initialDelay && this.box.executionsCount === 0) {
       this.boxTimingState = {
         endsAt: dayjs().add(this.box.initialDelay, 'seconds').unix(),
@@ -111,7 +112,7 @@ export class BoxConfigWorker {
   }
   async cooldown() {
     await this.resolveBox();
-    if (this.box.cooldownDuration > 0) {
+    if (this.box.cooldownDuration > 0 && !this.isWon) {
       this.logger.log('Cooldown started');
       this.boxTimingState = {
         startedAt: dayjs().unix(),
@@ -194,7 +195,10 @@ export class BoxConfigWorker {
         boxData.bidder?.toString() ?? boxData.winnerAddress?.toString();
 
       this.currentBid = boxData.activeBid.toNumber() / LAMPORTS_PER_SOL;
-      if (boxData.winnerAddress || boxData.bidder) {
+      if (
+        boxData.winnerAddress ||
+        (boxData.bidder && this.boxTimingState.state === BoxState.Cooldown)
+      ) {
         this.isWon = true;
       }
       await this.publishBox();

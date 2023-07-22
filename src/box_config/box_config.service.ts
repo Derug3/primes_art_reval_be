@@ -106,12 +106,17 @@ export class BoxConfigService implements OnModuleInit {
     return box.placeBid(serializedTx);
   }
 
+  checkBoxExistance(boxId: string) {
+    return this.workers.find((w) => w.box.boxId === boxId);
+  }
+
   async claimBoxNft(tx: any) {
     return await claimNft(tx);
   }
 
   async deleteAllBoxes() {
     await this.boxConfigRepo.delete({});
+    this.workers = [];
     return true;
   }
 }
