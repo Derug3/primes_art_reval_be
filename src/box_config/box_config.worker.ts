@@ -53,6 +53,7 @@ export class BoxConfigWorker {
   async start() {
     this.logger.debug(`Starting box ${this.box.boxId}`);
     this.currentBid = 0;
+    this.bidder = undefined;
     this.isWon = false;
     if (this.box.initialDelay && this.box.executionsCount === 0) {
       this.boxTimingState = {
@@ -65,7 +66,6 @@ export class BoxConfigWorker {
     }
     if (this.box.boxId) {
       const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
-      console.log(newBoxState);
 
       if (!newBoxState || newBoxState.boxState === BoxState.Removed) {
         this.logger.debug(`Stopping box with id ${this.box.boxId}`);
@@ -194,7 +194,7 @@ export class BoxConfigWorker {
         boxData.bidder?.toString() ?? boxData.winnerAddress?.toString();
 
       this.currentBid = boxData.activeBid.toNumber() / LAMPORTS_PER_SOL;
-      if (boxData.winnerAddress) {
+      if (boxData.winnerAddress || boxData.bidder) {
         this.isWon = true;
       }
       await this.publishBox();
