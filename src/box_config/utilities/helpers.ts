@@ -61,7 +61,6 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
     const authority = getAuthorityAsSigner();
 
     transaction.partialSign(authority);
-    console.log(transaction, 'TXXX');
 
     const txSig = await connection.sendRawTransaction(
       transaction.serialize({ requireAllSignatures: false }),
@@ -111,7 +110,8 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
 
     tx.add(ix);
     tx.sign(authority);
-    await connection.sendRawTransaction(tx.serialize());
+    const txSig = await connection.sendRawTransaction(tx.serialize());
+    await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
     console.log(error);

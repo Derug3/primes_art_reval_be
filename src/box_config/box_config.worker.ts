@@ -85,10 +85,10 @@ export class BoxConfigWorker {
         };
         await this.publishBox(this.boxTimingState);
 
-        // await this.boxConfigRepo.save({
-        //   ...this.box,
-        //   boxState: BoxState.Active,
-        // });
+        await this.boxConfigRepo.save({
+          ...this.box,
+          boxState: BoxState.Active,
+        });
         await sleep(newBoxState.boxPause * 1000);
       }
       this.box = newBoxState;
@@ -140,8 +140,6 @@ export class BoxConfigWorker {
       await this.redisService.del(this.activeNft.nftId);
 
       this.box.executionsCount += 1;
-
-      // await this.boxConfigRepo.save(this.box);
       await this.getBox();
     } catch (error) {}
   }
