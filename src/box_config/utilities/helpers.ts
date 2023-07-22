@@ -163,7 +163,7 @@ export const initBoxIx = async (
     const ix = await program.methods
       .initBox(boxId.split('-')[0], {
         bidIncrease: new BN(box.bidIncrease * LAMPORTS_PER_SOL),
-        bidStartPrice: new BN(box.bidStartPrice),
+        bidStartPrice: new BN(box.bidStartPrice * LAMPORTS_PER_SOL),
         buyNowPrice: box.buyNowPrice
           ? new BN(box.buyNowPrice * LAMPORTS_PER_SOL)
           : null,
