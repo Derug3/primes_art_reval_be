@@ -52,6 +52,7 @@ export class BoxConfigWorker {
 
   async start() {
     this.logger.debug(`Starting box ${this.box.boxId}`);
+    this.currentBid = 0;
     this.isWon = false;
     if (this.box.initialDelay && this.box.executionsCount === 0) {
       this.boxTimingState = {
