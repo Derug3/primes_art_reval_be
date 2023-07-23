@@ -22,7 +22,9 @@ import { BadRequestException } from '@nestjs/common';
 
 dotenv.config();
 export const sleep = async (ms: number) => {
-  await new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 };
 
 export const programId = process.env.PROGRAM_ID!;
@@ -190,8 +192,6 @@ export const initBoxIx = async (
 
     const txSig = await connection.sendRawTransaction(tx.serialize());
 
-    console.log(txSig);
-
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
@@ -215,6 +215,8 @@ export const claimNft = async (tx: any) => {
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
+    console.log(error);
+
     throw new BadRequestException(error.message);
   }
 };
@@ -236,7 +238,7 @@ export const parseTransactionError = (data: any) => {
 
   if (log) {
     const slicedData = +log.split('Error Number:')[1].split('.')[0].trim();
-    const err = program.idl.errors.find((err) => err.code === slicedData)?.msg;
+    const err = program.idl.errors?.find((err) => err.code === slicedData)?.msg;
 
     return err;
   }

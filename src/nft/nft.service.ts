@@ -31,7 +31,6 @@ export class NftService {
           return nft;
         }),
       );
-      console.log(nfts.length);
 
       await this.nftRepository.save(nfts);
 

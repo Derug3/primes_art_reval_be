@@ -35,6 +35,7 @@ export class BoxConfigWorker {
   currentBid: number;
   bidder: string;
   isWon: boolean;
+  hasResolver: boolean;
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -116,7 +117,7 @@ export class BoxConfigWorker {
   }
   async cooldown() {
     await this.resolveBox();
-    if (this.box.cooldownDuration > 0 && !this.isWon) {
+    if (this.box.cooldownDuration > 0) {
       this.logger.log('Cooldown started');
       this.boxTimingState = {
         startedAt: dayjs().unix(),
@@ -175,7 +176,6 @@ export class BoxConfigWorker {
 
       do {
         const rand = Math.round(Math.random() * nfts.length) + 1;
-        console.log(rand);
 
         const randomNft = nfts[rand];
         acknowledged = await this.redisService.setnx(
@@ -210,7 +210,6 @@ export class BoxConfigWorker {
 
     try {
       const boxData = await program.account.boxData.fetch(boxAddress);
-      console.log(boxData, 'BOX DATA');
 
       this.bidder =
         boxData.bidder?.toString() ?? boxData.winnerAddress?.toString();
