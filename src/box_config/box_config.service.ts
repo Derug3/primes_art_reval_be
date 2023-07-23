@@ -16,6 +16,8 @@ import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
 import { NftService } from 'src/nft/nft.service';
 import { claimNft } from './utilities/helpers';
+import { RecoverBoxService } from 'src/recover_box/recover_box.service';
+import { BoxType } from 'src/enum/enums';
 @Injectable()
 export class BoxConfigService implements OnModuleInit {
   private saveOrUpdateBox: SaveOrUpdateBoxConfig;
@@ -28,6 +30,7 @@ export class BoxConfigService implements OnModuleInit {
     private readonly nftService: NftService,
     @InjectRedis()
     private readonly redisService: Redis,
+    private readonly recoverBoxService: RecoverBoxService,
   ) {
     this.workers = [];
     this.saveOrUpdateBox = new SaveOrUpdateBoxConfig(boxConfigRepo);
@@ -46,6 +49,7 @@ export class BoxConfigService implements OnModuleInit {
               box,
               this.redisService,
               this.nftService,
+              this.recoverBoxService,
             ),
           );
         });
@@ -57,6 +61,22 @@ export class BoxConfigService implements OnModuleInit {
   async saveOrUpdateBoxHandler(box: BoxConfigInput) {
     const saved = await this.saveOrUpdateBox.execute(box);
     this.logger.debug(`Staring box worker with id:${saved.boxId}`);
+    if (
+      (box.boxType === BoxType.BidBuyNow || box.boxType === BoxType.BuyNow) &&
+      !box.buyNowPrice
+    ) {
+      throw new BadRequestException(
+        "Can't create box of type BidBuy and Buy without buy now price defined!",
+      );
+    }
+    if (
+      (box.boxType === BoxType.Bid || box.boxType === BoxType.BidBuyNow) &&
+      !box.bidStartPrice
+    ) {
+      throw new BadRequestException(
+        "Can't create box of type BidBuy and Bid without bid start price defined!",
+      );
+    }
     if (!box.boxId) {
       const newWorker = new BoxConfigWorker(
         this.subscriptionService,
@@ -64,6 +84,7 @@ export class BoxConfigService implements OnModuleInit {
         saved,
         this.redisService,
         this.nftService,
+        this.recoverBoxService,
       );
       this.workers.push(newWorker);
     }

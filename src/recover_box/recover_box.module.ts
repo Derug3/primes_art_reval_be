@@ -8,5 +8,6 @@ import { RecoverBoxRepository } from './recover_box.repository';
 @Module({
   imports: [TypeOrmModule.forFeature([RecoverBox])],
   providers: [RecoverBoxResolver, RecoverBoxService, RecoverBoxRepository],
+  exports: [RecoverBoxService],
 })
 export class RecoverBoxModule {}

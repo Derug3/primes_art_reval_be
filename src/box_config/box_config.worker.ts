@@ -3,6 +3,7 @@ import { BadRequestException, Logger } from '@nestjs/common';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { BoxConfig } from './entity/box_config.entity';
 import { BoxConfigRepository } from './repository/box.config.repository';
+import { v4 } from 'uuid';
 import {
   BoxConfigOutput,
   BoxState,
@@ -12,6 +13,7 @@ import {
   initBoxIx,
   parseAndValidatePlaceBidTx,
   primeBoxSeed,
+  primeBoxTreasurySeed,
   program,
   programId,
   resolveBoxIx,
@@ -23,6 +25,7 @@ import { NftService } from 'src/nft/nft.service';
 import { Nft } from 'src/nft/entity/nft.entity';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { resolve } from 'path';
+import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 
 export class BoxConfigWorker {
   box: BoxConfig;
@@ -41,6 +44,7 @@ export class BoxConfigWorker {
     boxConfig: BoxConfig,
     private readonly redisService: Redis,
     private readonly nftService: NftService,
+    private readonly recoverBoxService: RecoverBoxService,
   ) {
     this.box = boxConfig;
     this.bidsCount = 0;
@@ -137,11 +141,28 @@ export class BoxConfigWorker {
   async resolveBox() {
     try {
       this.logger.log('Resolved box');
-      await resolveBoxIx(this.getBoxPda());
+      const resolved = await resolveBoxIx(this.getBoxPda());
       await this.redisService.del(this.activeNft.nftId);
 
       this.box.executionsCount += 1;
       await this.getBox();
+      if (!resolved) {
+        const boxAddress = this.getBoxPda();
+        const [boxTreasury] = PublicKey.findProgramAddressSync(
+          [primeBoxTreasurySeed, boxAddress.toBuffer()],
+          program.programId,
+        );
+        await this.recoverBoxService.saveFailedBox({
+          boxData: boxAddress.toString(),
+          failedAt: new Date(),
+          id: v4(),
+          nftId: this.activeNft.nftId,
+          nftUri: this.activeNft.nftUri,
+          winner: this.bidder,
+          winningAmount: this.currentBid,
+          boxTreasury: boxTreasury.toString(),
+        });
+      }
     } catch (error) {}
   }
 

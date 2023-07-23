@@ -11,7 +11,7 @@ export class RecoverBox {
   @Column()
   winner: string;
   @Column()
-  winningAmount: string;
+  winningAmount: number;
   @Column()
   nftId: string;
   @Column()
