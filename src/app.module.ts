@@ -9,6 +9,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { SubscriberModule } from './subscriber/subscriber.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { NftModule } from './nft/nft.module';
+import { RecoverBoxModule } from './recover_box/recover_box.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { NftModule } from './nft/nft.module';
     SubscriberModule,
     RedisModule,
     NftModule,
+    RecoverBoxModule,
   ],
 
   providers: [AppService],

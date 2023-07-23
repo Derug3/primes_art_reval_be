@@ -11,6 +11,11 @@ export type ArtReveal = {
           isSigner: false;
         },
         {
+          name: 'bidder';
+          isMut: true;
+          isSigner: true;
+        },
+        {
           name: 'authority';
           isMut: false;
           isSigner: true;
@@ -19,11 +24,6 @@ export type ArtReveal = {
           name: 'boxTreasury';
           isMut: true;
           isSigner: false;
-        },
-        {
-          name: 'bidder';
-          isMut: true;
-          isSigner: true;
         },
         {
           name: 'systemProgram';
@@ -48,6 +48,11 @@ export type ArtReveal = {
       name: 'claimNft';
       accounts: [
         {
+          name: 'winner';
+          isMut: true;
+          isSigner: true;
+        },
+        {
           name: 'payer';
           isMut: true;
           isSigner: true;
@@ -71,11 +76,6 @@ export type ArtReveal = {
           name: 'tokenAccount';
           isMut: true;
           isSigner: false;
-        },
-        {
-          name: 'winner';
-          isMut: true;
-          isSigner: true;
         },
         {
           name: 'metadataAccount';
@@ -202,6 +202,48 @@ export type ArtReveal = {
         },
       ];
       args: [];
+    },
+    {
+      name: 'recoverBox';
+      accounts: [
+        {
+          name: 'boxData';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'authority';
+          isMut: true;
+          isSigner: true;
+        },
+        {
+          name: 'winningProof';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'boxTreasury';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'systemProgram';
+          isMut: false;
+          isSigner: false;
+        },
+      ];
+      args: [
+        {
+          name: 'winner';
+          type: 'publicKey';
+        },
+        {
+          name: 'recoverBoxData';
+          type: {
+            defined: 'RecoverBoxData';
+          };
+        },
+      ];
     },
   ];
   accounts: [
@@ -372,6 +414,26 @@ export type ArtReveal = {
     },
   ];
   types: [
+    {
+      name: 'RecoverBoxData';
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'nftId';
+            type: 'string';
+          },
+          {
+            name: 'nftUri';
+            type: 'string';
+          },
+          {
+            name: 'winningAmount';
+            type: 'u64';
+          },
+        ];
+      };
+    },
     {
       name: 'InitBoxData';
       type: {
@@ -558,6 +620,11 @@ export const IDL: ArtReveal = {
           isSigner: false,
         },
         {
+          name: 'bidder',
+          isMut: true,
+          isSigner: true,
+        },
+        {
           name: 'authority',
           isMut: false,
           isSigner: true,
@@ -566,11 +633,6 @@ export const IDL: ArtReveal = {
           name: 'boxTreasury',
           isMut: true,
           isSigner: false,
-        },
-        {
-          name: 'bidder',
-          isMut: true,
-          isSigner: true,
         },
         {
           name: 'systemProgram',
@@ -595,6 +657,11 @@ export const IDL: ArtReveal = {
       name: 'claimNft',
       accounts: [
         {
+          name: 'winner',
+          isMut: true,
+          isSigner: true,
+        },
+        {
           name: 'payer',
           isMut: true,
           isSigner: true,
@@ -618,11 +685,6 @@ export const IDL: ArtReveal = {
           name: 'tokenAccount',
           isMut: true,
           isSigner: false,
-        },
-        {
-          name: 'winner',
-          isMut: true,
-          isSigner: true,
         },
         {
           name: 'metadataAccount',
@@ -749,6 +811,48 @@ export const IDL: ArtReveal = {
         },
       ],
       args: [],
+    },
+    {
+      name: 'recoverBox',
+      accounts: [
+        {
+          name: 'boxData',
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: 'authority',
+          isMut: true,
+          isSigner: true,
+        },
+        {
+          name: 'winningProof',
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: 'boxTreasury',
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: 'systemProgram',
+          isMut: false,
+          isSigner: false,
+        },
+      ],
+      args: [
+        {
+          name: 'winner',
+          type: 'publicKey',
+        },
+        {
+          name: 'recoverBoxData',
+          type: {
+            defined: 'RecoverBoxData',
+          },
+        },
+      ],
     },
   ],
   accounts: [
@@ -919,6 +1023,26 @@ export const IDL: ArtReveal = {
     },
   ],
   types: [
+    {
+      name: 'RecoverBoxData',
+      type: {
+        kind: 'struct',
+        fields: [
+          {
+            name: 'nftId',
+            type: 'string',
+          },
+          {
+            name: 'nftUri',
+            type: 'string',
+          },
+          {
+            name: 'winningAmount',
+            type: 'u64',
+          },
+        ],
+      },
+    },
     {
       name: 'InitBoxData',
       type: {
