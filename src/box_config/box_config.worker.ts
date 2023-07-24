@@ -143,6 +143,7 @@ export class BoxConfigWorker {
     try {
       this.logger.log('Resolved box');
       const resolved = await resolveBoxIx(this.getBoxPda());
+      await this.nftService.updateNft(this.activeNft.nftId, resolved);
       await this.redisService.del(this.activeNft.nftId);
 
       this.box.executionsCount += 1;
@@ -170,7 +171,13 @@ export class BoxConfigWorker {
   async setupBox() {
     try {
       this.logger.log('Box setup');
-      const nfts = await this.nftService.getNonMinted();
+      let nfts = await this.nftService.getNonMinted();
+
+      const nonShuffled = nfts.filter((n) => n.reshuffleCount === 0);
+
+      if (nonShuffled.length !== 0) {
+        nfts = nonShuffled;
+      }
 
       let acknowledged = 0;
 

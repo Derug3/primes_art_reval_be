@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Nft } from './entity/nft.entity';
@@ -6,6 +6,7 @@ import { NftRepository } from './repository/nft_repository';
 
 @Injectable()
 export class NftService {
+  logger: Logger = new Logger(NftService.name);
   constructor(
     @InjectRepository(NftRepository)
     private readonly nftRepository: NftRepository,
@@ -42,5 +43,21 @@ export class NftService {
 
   getNonMinted() {
     return this.nftRepository.find({ where: { minted: false } });
+  }
+
+  async updateNft(nftId: string, hasMinted: boolean) {
+    try {
+      const nft = await this.nftRepository.findOne({ where: { nftId } });
+      if (!nft) throw new Error(`Nft with id ${nftId} not found in DB!`);
+      if (hasMinted) {
+        nft.minted = true;
+      } else {
+        nft.reshuffleCount++;
+      }
+      this.logger.verbose(`NFT with id:${nftId} is minted:${hasMinted}`);
+      await this.nftRepository.save(nft);
+    } catch (error) {
+      this.logger.error(error.message);
+    }
   }
 }
