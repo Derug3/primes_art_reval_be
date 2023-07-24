@@ -22,7 +22,7 @@ export class NftService {
       await this.nftRepository.delete({});
 
       const nfts: Nft[] = await Promise.all(
-        cdnNfts.map(async (nftUri: any) => {
+        cdnNfts.slice(0,500).map(async (nftUri: any) => {
           const nft = new Nft();
           const nftData = await (await fetch(nftUri)).json();
           nft.nftUri = nftUri;
