@@ -77,6 +77,19 @@ export class BoxConfigService implements OnModuleInit {
         "Can't create box of type BidBuy and Bid without bid start price defined!",
       );
     }
+    if (box.boxType === BoxType.Bid && box.buyNowPrice > 0) {
+      throw new BadRequestException(
+        "Can't define buy now price on box that has bid type!",
+      );
+    }
+    if (
+      box.boxType === BoxType.BuyNow &&
+      (box.bidStartPrice > 0 || box.bidIncrease > 0)
+    ) {
+      throw new BadRequestException(
+        "Can't define bid  price on box that has buy now tyoe type!",
+      );
+    }
     if (!box.boxId) {
       const newWorker = new BoxConfigWorker(
         this.subscriptionService,
