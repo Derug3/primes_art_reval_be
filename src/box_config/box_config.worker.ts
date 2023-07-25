@@ -216,6 +216,7 @@ export class BoxConfigWorker {
     const boxAddress = this.getBoxPda();
 
     try {
+      await sleep(1000);
       const boxData = await program.account.boxData.fetch(boxAddress);
 
       this.bidder =
