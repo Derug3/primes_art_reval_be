@@ -42,9 +42,15 @@ export const connection = new Connection(process.env.SOLANA_RPC_ENDPOINT!, {
 export const program = new Program<ArtReveal>(
   IDL,
   programId,
-  new AnchorProvider(connection, new Wallet(getAuthorityAsSigner()), {
-    commitment: 'confirmed',
-  }),
+  new AnchorProvider(
+    new Connection(process.env.SOLANA_RPC_ENDPOINT, {
+      commitment: 'processed',
+    }),
+    new Wallet(getAuthorityAsSigner()),
+    {
+      commitment: 'processed',
+    },
+  ),
 );
 
 export const parseAndValidatePlaceBidTx = async (tx: any) => {

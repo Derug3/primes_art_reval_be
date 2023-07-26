@@ -22,11 +22,12 @@ export class NftService {
       await this.nftRepository.delete({});
 
       const nfts: Nft[] = await Promise.all(
-        cdnNfts.slice(0,500).map(async (nftUri: any) => {
+        cdnNfts.slice(0, 500).map(async (nftUri: any) => {
           const nft = new Nft();
           const nftData = await (await fetch(nftUri)).json();
           nft.nftUri = nftUri;
           nft.nftName = nftData.name;
+          nft.isInBox = false;
           nft.reshuffleCount = 0;
           nft.nftImage = nftData.image;
           return nft;
@@ -42,7 +43,9 @@ export class NftService {
   }
 
   getNonMinted() {
-    return this.nftRepository.find({ where: { minted: false } });
+    return this.nftRepository.find({
+      where: { minted: false, isInBox: false },
+    });
   }
 
   async updateNft(nftId: string, hasMinted: boolean) {
@@ -56,6 +59,16 @@ export class NftService {
       }
       this.logger.verbose(`NFT with id:${nftId} is minted:${hasMinted}`);
       await this.nftRepository.save(nft);
+    } catch (error) {
+      this.logger.error(error.message);
+    }
+  }
+
+  async toggleNftBoxState(nftId: string, isInBox: boolean) {
+    try {
+      const nft = await this.nftRepository.findOne({ where: { nftId } });
+      if (!nft) throw new Error(`Nft with id ${nftId} not found in DB!`);
+      nft.isInBox = isInBox;
     } catch (error) {
       this.logger.error(error.message);
     }

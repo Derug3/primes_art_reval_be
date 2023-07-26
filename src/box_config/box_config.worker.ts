@@ -58,6 +58,7 @@ export class BoxConfigWorker {
   async start() {
     this.logger.debug(`Starting box ${this.box.boxId}`);
     this.currentBid = 0;
+    this.bidsCount = 0;
     this.bidder = undefined;
     this.isWon = false;
 
@@ -144,6 +145,7 @@ export class BoxConfigWorker {
       this.logger.log('Resolved box');
       const resolved = await resolveBoxIx(this.getBoxPda());
       await this.nftService.updateNft(this.activeNft.nftId, resolved);
+      await this.nftService.toggleNftBoxState(this.activeNft.nftId, resolved);
       await this.redisService.del(this.activeNft.nftId);
 
       this.box.executionsCount += 1;
@@ -190,6 +192,7 @@ export class BoxConfigWorker {
           JSON.stringify(randomNft),
         );
         this.activeNft = randomNft;
+        await this.nftService.toggleNftBoxState(randomNft.nftId, true);
       } while (acknowledged <= 0);
     } catch (error) {}
   }
@@ -202,6 +205,8 @@ export class BoxConfigWorker {
 
   async placeBid(serializedTransaction: string) {
     const transaction = JSON.parse(serializedTransaction);
+
+    this.bidsCount++;
 
     try {
       await parseAndValidatePlaceBidTx(transaction);
@@ -216,8 +221,9 @@ export class BoxConfigWorker {
     const boxAddress = this.getBoxPda();
 
     try {
-      await sleep(1000);
       const boxData = await program.account.boxData.fetch(boxAddress);
+
+      console.log(boxData);
 
       this.bidder =
         boxData.bidder?.toString() ?? boxData.winnerAddress?.toString();
