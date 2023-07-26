@@ -18,7 +18,7 @@ export class Nft {
   @Column({ nullable: true })
   nftUri: string;
   @Field()
-  @Column()
+  @Column({ nullable: true })
   isInBox: boolean;
   @Field()
   @Column({ default: false })
