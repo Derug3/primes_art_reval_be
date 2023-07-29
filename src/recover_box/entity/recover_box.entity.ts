@@ -8,7 +8,7 @@ export class RecoverBox {
   boxData: string;
   @Column()
   boxTreasury: string;
-  @Column()
+  @Column({ nullable: true })
   winner: string;
   @Column()
   winningAmount: number;

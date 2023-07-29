@@ -191,6 +191,11 @@ export type ArtReveal = {
           isSigner: false;
         },
         {
+          name: 'treasury';
+          isMut: true;
+          isSigner: false;
+        },
+        {
           name: 'winningProof';
           isMut: true;
           isSigner: false;
@@ -215,6 +220,11 @@ export type ArtReveal = {
           name: 'authority';
           isMut: true;
           isSigner: true;
+        },
+        {
+          name: 'treasury';
+          isMut: true;
+          isSigner: false;
         },
         {
           name: 'winningProof';
@@ -800,6 +810,11 @@ export const IDL: ArtReveal = {
           isSigner: false,
         },
         {
+          name: 'treasury',
+          isMut: true,
+          isSigner: false,
+        },
+        {
           name: 'winningProof',
           isMut: true,
           isSigner: false,
@@ -824,6 +839,11 @@ export const IDL: ArtReveal = {
           name: 'authority',
           isMut: true,
           isSigner: true,
+        },
+        {
+          name: 'treasury',
+          isMut: true,
+          isSigner: false,
         },
         {
           name: 'winningProof',

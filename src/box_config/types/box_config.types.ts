@@ -61,6 +61,18 @@ export class BoxConfigOutput extends BoxConfigInput {
   bidder: string;
   @Field()
   isWon: boolean;
+  @Field(() => [Bidders])
+  bidders: Bidders[];
+}
+
+@ObjectType()
+export class Bidders {
+  @Field()
+  username: string;
+  @Field()
+  bidAmount: number;
+  @Field()
+  walletAddress: string;
 }
 
 export enum BoxPool {
@@ -79,6 +91,7 @@ export enum BoxState {
   Paused,
   Removed,
   Cooldown,
+  Minted,
 }
 
 registerEnumType(BoxState, { name: 'BoxState' });

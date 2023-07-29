@@ -69,6 +69,7 @@ export class NftService {
       const nft = await this.nftRepository.findOne({ where: { nftId } });
       if (!nft) throw new Error(`Nft with id ${nftId} not found in DB!`);
       nft.isInBox = isInBox;
+      await this.nftRepository.save(nft);
     } catch (error) {
       this.logger.error(error.message);
     }

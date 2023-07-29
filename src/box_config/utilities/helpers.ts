@@ -17,7 +17,7 @@ import { decode } from 'bs58';
 import { BoxConfig } from '../entity/box_config.entity';
 import { Nft } from 'src/nft/entity/nft.entity';
 import { BoxType } from 'src/enum/enums';
-import { BoxPool } from '../types/box_config.types';
+import { Bidders, BoxPool } from '../types/box_config.types';
 import { BadRequestException } from '@nestjs/common';
 
 dotenv.config();
@@ -30,6 +30,8 @@ export const sleep = async (ms: number) => {
 export const programId = process.env.PROGRAM_ID!;
 
 const authority = process.env.AUTHORITY!;
+
+const treasury = process.env.TREASURY!;
 
 export const getAuthorityAsSigner = () => {
   const decodedAuthority = Keypair.fromSecretKey(decode(authority));
@@ -53,7 +55,11 @@ export const program = new Program<ArtReveal>(
   ),
 );
 
-export const parseAndValidatePlaceBidTx = async (tx: any) => {
+export const parseAndValidatePlaceBidTx = async (
+  tx: any,
+  bidders: Bidders[],
+  hasResolved: boolean,
+) => {
   try {
     const transaction = Transaction.from(tx.data);
 
@@ -61,6 +67,18 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
       (ix) =>
         ix.programId.toString() !== ComputeBudgetProgram.programId.toString(),
     );
+    const bidder = instructionsWithoutCb[0].keys[1].pubkey.toString();
+    const bidAmount =
+      Number(
+        Buffer.from(
+          instructionsWithoutCb[0].data.subarray(4, 12),
+        ).readBigInt64LE(),
+      ) / LAMPORTS_PER_SOL;
+    bidders.push({
+      bidAmount,
+      walletAddress: bidder.toString(),
+      username: 'Load Discord Username',
+    });
 
     if (instructionsWithoutCb[0].programId.toString() !== programId) {
       throw new Error('Invalid program id');
@@ -74,6 +92,9 @@ export const parseAndValidatePlaceBidTx = async (tx: any) => {
       transaction.serialize({ requireAllSignatures: false }),
     );
     await connection.confirmTransaction(txSig);
+    if (instructionsWithoutCb.length > 1) {
+      hasResolved = true;
+    }
   } catch (error) {
     console.log(error);
 
@@ -92,6 +113,8 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
 
     const boxData = await program.account.boxData.fetch(boxAddress);
 
+    console.log(boxData, 'BDATA');
+
     const [winningProof] = PublicKey.findProgramAddressSync(
       [
         primeBoxWinnerSeed,
@@ -107,6 +130,8 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
         boxData: boxAddress,
         winningProof,
         boxTreasury,
+        treasury: new PublicKey(treasury),
+        payer: authority.publicKey,
         systemProgram: SystemProgram.programId,
       })
       .instruction();
@@ -123,7 +148,6 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
     return true;
   } catch (error) {
     console.log(error);
-
     return false;
   }
 };
@@ -201,6 +225,8 @@ export const initBoxIx = async (
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
+    console.log(error);
+
     return false;
   }
 };

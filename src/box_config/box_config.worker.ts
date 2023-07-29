@@ -1,10 +1,9 @@
 import { BadRequestException, Logger } from '@nestjs/common';
-
 import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { BoxConfig } from './entity/box_config.entity';
 import { BoxConfigRepository } from './repository/box.config.repository';
-import { v4 } from 'uuid';
 import {
+  Bidders,
   BoxConfigOutput,
   BoxState,
   BoxTimigState,
@@ -19,12 +18,12 @@ import {
   resolveBoxIx,
   sleep,
 } from './utilities/helpers';
+import { v4 } from 'uuid';
 import Redis from 'ioredis';
 import * as dayjs from 'dayjs';
 import { NftService } from 'src/nft/nft.service';
 import { Nft } from 'src/nft/entity/nft.entity';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-import { resolve } from 'path';
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 
 export class BoxConfigWorker {
@@ -35,7 +34,8 @@ export class BoxConfigWorker {
   currentBid: number;
   bidder: string;
   isWon: boolean;
-  hasResolver: boolean;
+  hasResolved: boolean;
+  bidders: Bidders[];
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -51,6 +51,8 @@ export class BoxConfigWorker {
     this.bidsCount = 0;
     this.isWon = false;
     this.currentBid = 0;
+    this.bidders = [];
+    this.hasResolved = false;
 
     this.start();
   }
@@ -61,6 +63,8 @@ export class BoxConfigWorker {
     this.bidsCount = 0;
     this.bidder = undefined;
     this.isWon = false;
+    this.hasResolved = false;
+    this.bidders = [];
 
     if (this.box.initialDelay && this.box.executionsCount === 0) {
       this.boxTimingState = {
@@ -68,7 +72,7 @@ export class BoxConfigWorker {
         startedAt: dayjs().unix(),
         state: BoxState.Paused,
       };
-      await this.publishBox(this.boxTimingState);
+      await this.publishBox();
       await sleep(this.box.initialDelay * 1000);
     }
     if (this.box.boxId) {
@@ -81,7 +85,7 @@ export class BoxConfigWorker {
           startedAt: dayjs().unix(),
           state: BoxState.Removed,
         };
-        await this.publishBox(this.boxTimingState);
+        await this.publishBox();
         return;
       }
       if (newBoxState.boxState === BoxState.Paused) {
@@ -90,7 +94,7 @@ export class BoxConfigWorker {
           startedAt: dayjs().unix(),
           state: BoxState.Paused,
         };
-        await this.publishBox(this.boxTimingState);
+        await this.publishBox();
 
         await this.boxConfigRepo.save({
           ...this.box,
@@ -101,7 +105,12 @@ export class BoxConfigWorker {
       this.box = newBoxState;
     }
 
-    await this.setupBox();
+    const boxSetup = await this.setupBox();
+    this.logger.debug(boxSetup);
+    if (!boxSetup) {
+      await this.publishBox();
+      return;
+    }
     this.boxTimingState = {
       endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
       startedAt: dayjs().unix(),
@@ -109,9 +118,7 @@ export class BoxConfigWorker {
     };
     await initBoxIx(this.getBoxPda(), this.box.boxId, this.box, this.activeNft);
     await this.getBox();
-
     this.logger.log('Box emitted');
-
     await sleep(this.box.boxDuration * 1000);
 
     await this.cooldown();
@@ -126,9 +133,7 @@ export class BoxConfigWorker {
         state: BoxState.Cooldown,
       };
       await this.getBox();
-      await this.subscriberService.pubSub.publish('wonNft', {
-        wonNft: this.mapToDto(),
-      });
+
       await sleep(this.box.cooldownDuration * 1000);
     }
     await this.start();
@@ -143,19 +148,26 @@ export class BoxConfigWorker {
   async resolveBox() {
     try {
       this.logger.log('Resolved box');
+      await sleep(1000);
       const resolved = await resolveBoxIx(this.getBoxPda());
-      await this.nftService.updateNft(this.activeNft.nftId, resolved);
-      await this.nftService.toggleNftBoxState(this.activeNft.nftId, resolved);
+      if (!this.isWon && !this.hasResolved && !resolved) {
+        this.logger.warn('Non resolved NFT');
+        await this.nftService.updateNft(this.activeNft.nftId, false);
+      } else {
+        this.logger.log('Resolved NFT');
+        await this.nftService.updateNft(this.activeNft.nftId, true);
+      }
       await this.redisService.del(this.activeNft.nftId);
-
+      await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       this.box.executionsCount += 1;
       await this.getBox();
-      if (!resolved) {
+      if (!resolved && !this.hasResolved) {
         const boxAddress = this.getBoxPda();
         const [boxTreasury] = PublicKey.findProgramAddressSync(
           [primeBoxTreasurySeed, boxAddress.toBuffer()],
           program.programId,
         );
+        // TODO:check
         await this.recoverBoxService.saveFailedBox({
           boxData: boxAddress.toString(),
           failedAt: new Date(),
@@ -167,13 +179,26 @@ export class BoxConfigWorker {
           boxTreasury: boxTreasury.toString(),
         });
       }
-    } catch (error) {}
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   async setupBox() {
     try {
       this.logger.log('Box setup');
       let nfts = await this.nftService.getNonMinted();
+
+      if (nfts.length === 0) {
+        this.box.boxState = BoxState.Minted;
+        this.boxTimingState = {
+          endsAt: -1,
+          startedAt: -1,
+          state: BoxState.Minted,
+        };
+        await this.boxConfigRepo.save(this.box);
+        return false;
+      }
 
       const nonShuffled = nfts.filter((n) => n.reshuffleCount === 0);
 
@@ -184,20 +209,22 @@ export class BoxConfigWorker {
       let acknowledged = 0;
 
       do {
-        const rand = Math.round(Math.random() * nfts.length) + 1;
-
+        const rand = Math.round(Math.random() * (nfts.length - 1));
         const randomNft = nfts[rand];
         acknowledged = await this.redisService.setnx(
           randomNft.nftId,
           JSON.stringify(randomNft),
         );
         this.activeNft = randomNft;
-        await this.nftService.toggleNftBoxState(randomNft.nftId, true);
-      } while (acknowledged <= 0);
+      } while (acknowledged === 0);
+
+      this.logger.debug(`Toggling nft in db with id ${this.activeNft.nftId}`);
+      await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
+      return true;
     } catch (error) {}
   }
 
-  async publishBox(boxTimingState?: BoxTimigState) {
+  async publishBox() {
     await this.subscriberService.pubSub.publish('boxConfig', {
       boxConfig: this.mapToDto(),
     });
@@ -206,10 +233,19 @@ export class BoxConfigWorker {
   async placeBid(serializedTransaction: string) {
     const transaction = JSON.parse(serializedTransaction);
 
+    if (this.boxTimingState.state !== BoxState.Active) {
+      throw new Error('Invalid box state!');
+    }
+
     this.bidsCount++;
 
     try {
-      await parseAndValidatePlaceBidTx(transaction);
+      await this.getBox();
+      await parseAndValidatePlaceBidTx(
+        transaction,
+        this.bidders,
+        this.hasResolved,
+      );
       await this.getBox();
       return true;
     } catch (error) {
@@ -222,8 +258,6 @@ export class BoxConfigWorker {
 
     try {
       const boxData = await program.account.boxData.fetch(boxAddress);
-
-      console.log(boxData);
 
       this.bidder =
         boxData.bidder?.toString() ?? boxData.winnerAddress?.toString();
@@ -249,6 +283,7 @@ export class BoxConfigWorker {
       activeBid: this.currentBid,
       bidder: this.bidder,
       isWon: this.isWon,
+      bidders: this.bidders,
     };
   }
 }
