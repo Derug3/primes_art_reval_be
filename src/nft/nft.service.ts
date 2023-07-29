@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { MoreThan } from 'typeorm';
 import { Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 
@@ -73,5 +74,33 @@ export class NftService {
     } catch (error) {
       this.logger.error(error.message);
     }
+  }
+
+  getInBox() {
+    return this.nftRepository.find({ where: { isInBox: true } });
+  }
+
+  getShuffled() {
+    return this.nftRepository.find({
+      where: { reshuffleCount: MoreThan(0), minted: false },
+    });
+  }
+
+  getMinted() {
+    return this.nftRepository.find({ where: { minted: true } });
+  }
+
+  async updateNfts() {
+    const nfts = (await this.nftRepository.find()).map((n) => ({
+      ...n,
+      minted: true,
+    }));
+
+    const rand = Math.round(Math.random() * (nfts.length - 1));
+
+    nfts[rand].minted = false;
+
+    await this.nftRepository.save(nfts);
+    return true;
   }
 }

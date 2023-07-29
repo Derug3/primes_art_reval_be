@@ -148,8 +148,15 @@ export class BoxConfigWorker {
   async resolveBox() {
     try {
       this.logger.log('Resolved box');
-      await sleep(1000);
-      const resolved = await resolveBoxIx(this.getBoxPda());
+
+      const boxPda = this.getBoxPda();
+      const box = await program.account.boxData.fetch(boxPda);
+      let resolved = false;
+      let hasTriedResolving = false;
+      if (box.winnerAddress || box.bidder) {
+        resolved = await resolveBoxIx(boxPda);
+        hasTriedResolving = true;
+      }
       if (!this.isWon && !this.hasResolved && !resolved) {
         this.logger.warn('Non resolved NFT');
         await this.nftService.updateNft(this.activeNft.nftId, false);
@@ -161,7 +168,7 @@ export class BoxConfigWorker {
       await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       this.box.executionsCount += 1;
       await this.getBox();
-      if (!resolved && !this.hasResolved) {
+      if (!resolved && !this.hasResolved && hasTriedResolving) {
         const boxAddress = this.getBoxPda();
         const [boxTreasury] = PublicKey.findProgramAddressSync(
           [primeBoxTreasurySeed, boxAddress.toBuffer()],
@@ -233,13 +240,11 @@ export class BoxConfigWorker {
   async placeBid(serializedTransaction: string) {
     const transaction = JSON.parse(serializedTransaction);
 
-    if (this.boxTimingState.state !== BoxState.Active) {
-      throw new Error('Invalid box state!');
-    }
-
-    this.bidsCount++;
-
     try {
+      if (this.boxTimingState.state !== BoxState.Active) {
+        throw new Error('Invalid box state!');
+      }
+      this.bidsCount++;
       await this.getBox();
       await parseAndValidatePlaceBidTx(
         transaction,
