@@ -152,9 +152,11 @@ export class BoxConfigWorker {
       const boxPda = this.getBoxPda();
       const box = await program.account.boxData.fetch(boxPda);
       let resolved = false;
-
-      resolved = await resolveBoxIx(boxPda);
-
+      let hasTriedResolving = false;
+      if (box.winnerAddress || box.bidder) {
+        resolved = await resolveBoxIx(boxPda);
+        hasTriedResolving = true;
+      }
       if (!this.isWon && !this.hasResolved && !resolved) {
         this.logger.warn('Non resolved NFT');
         await this.nftService.updateNft(this.activeNft.nftId, false);
@@ -166,7 +168,7 @@ export class BoxConfigWorker {
       await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       this.box.executionsCount += 1;
       await this.getBox();
-      if (!resolved && !this.hasResolved) {
+      if (!resolved && !this.hasResolved && hasTriedResolving) {
         const boxAddress = this.getBoxPda();
         const [boxTreasury] = PublicKey.findProgramAddressSync(
           [primeBoxTreasurySeed, boxAddress.toBuffer()],
