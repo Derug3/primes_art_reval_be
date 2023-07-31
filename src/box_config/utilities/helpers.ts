@@ -71,7 +71,7 @@ export const parseAndValidatePlaceBidTx = async (
     const bidAmount =
       Number(
         Buffer.from(
-          instructionsWithoutCb[0].data.subarray(4, 12),
+          instructionsWithoutCb[0].data.subarray(8, 16),
         ).readBigInt64LE(),
       ) / LAMPORTS_PER_SOL;
     bidders.push({
