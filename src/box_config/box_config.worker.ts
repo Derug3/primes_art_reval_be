@@ -212,9 +212,7 @@ export class BoxConfigWorker {
       if (nonShuffled.length !== 0) {
         nfts = nonShuffled;
       }
-
       let acknowledged = 0;
-
       do {
         const rand = Math.round(Math.random() * (nfts.length - 1));
         const randomNft = nfts[rand];
@@ -228,7 +226,9 @@ export class BoxConfigWorker {
       this.logger.debug(`Toggling nft in db with id ${this.activeNft.nftId}`);
       await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
       return true;
-    } catch (error) {}
+    } catch (error) {
+      this.logger.error(error.message);
+    }
   }
 
   async publishBox() {

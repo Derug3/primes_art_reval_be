@@ -68,17 +68,6 @@ export const parseAndValidatePlaceBidTx = async (
         ix.programId.toString() !== ComputeBudgetProgram.programId.toString(),
     );
     const bidder = instructionsWithoutCb[0].keys[1].pubkey.toString();
-    const bidAmount =
-      Number(
-        Buffer.from(
-          instructionsWithoutCb[0].data.subarray(8, 16),
-        ).readBigInt64LE(),
-      ) / LAMPORTS_PER_SOL;
-    bidders.push({
-      bidAmount,
-      walletAddress: bidder.toString(),
-      username: 'Load Discord Username',
-    });
 
     if (instructionsWithoutCb[0].programId.toString() !== programId) {
       throw new Error('Invalid program id');
@@ -95,6 +84,14 @@ export const parseAndValidatePlaceBidTx = async (
     if (instructionsWithoutCb.length > 1) {
       hasResolved = true;
     }
+    const box = await program.account.boxData.fetch(
+      instructionsWithoutCb[0].keys[0].pubkey,
+    );
+    bidders.push({
+      bidAmount: box.activeBid.toNumber() / LAMPORTS_PER_SOL,
+      walletAddress: bidder.toString(),
+      username: 'Load Discord Username',
+    });
   } catch (error) {
     console.log(error);
 
