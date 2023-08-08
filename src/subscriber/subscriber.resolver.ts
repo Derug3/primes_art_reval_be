@@ -6,7 +6,7 @@ import { SubscriberService } from './subscriber.service';
 export class SubscriberResolver {
   constructor(private readonly subscriberService: SubscriberService) {}
 
-  @Subscription(() => BoxConfigOutput)
+  @Subscription(() => BoxConfigOutput, {})
   boxConfig() {
     return this.subscriberService.pubSub.asyncIterator('boxConfig');
   }
@@ -17,5 +17,14 @@ export class SubscriberResolver {
   })
   wonNft(@Args('userAddress') userAddress: string) {
     return this.subscriberService.pubSub.asyncIterator('wonNft');
+  }
+
+  @Subscription(() => String, {
+    filter(payload, variables) {
+      return payload.overbidden === variables.userAddress;
+    },
+  })
+  overbidden(@Args('userAddress') userAddress: string) {
+    return this.subscriberService.pubSub.asyncIterator('overbidden');
   }
 }

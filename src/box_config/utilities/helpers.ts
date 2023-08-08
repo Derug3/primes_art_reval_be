@@ -59,9 +59,10 @@ export const parseAndValidatePlaceBidTx = async (
   tx: any,
   bidders: Bidders[],
   hasResolved: boolean,
-) => {
+): Promise<string | null> => {
   try {
     const transaction = Transaction.from(tx.data);
+    let existingBidProofAuthority: string | null = null;
 
     const instructionsWithoutCb = transaction.instructions.filter(
       (ix) =>
@@ -71,6 +72,34 @@ export const parseAndValidatePlaceBidTx = async (
 
     if (instructionsWithoutCb[0].programId.toString() !== programId) {
       throw new Error('Invalid program id');
+    }
+
+    const actionType = instructionsWithoutCb[0].data[8];
+    let existingWpAddress: PublicKey | null = null;
+
+    switch (actionType) {
+      case 0: {
+        existingWpAddress = instructionsWithoutCb[0].keys[6]?.pubkey ?? null;
+      }
+      case 1: {
+        existingWpAddress = instructionsWithoutCb[0].keys[6]?.pubkey ?? null;
+      }
+      case 2: {
+        existingWpAddress = instructionsWithoutCb[0].keys[6]?.pubkey ?? null;
+      }
+      case 3: {
+        existingWpAddress = instructionsWithoutCb[0].keys[9]?.pubkey ?? null;
+      }
+    }
+
+    if (existingWpAddress) {
+      try {
+        const existingBidProof = await program.account.preSaleBidProof.fetch(
+          existingWpAddress,
+        );
+
+        existingBidProofAuthority = existingBidProof.authoriry.toString();
+      } catch (error) {}
     }
 
     const authority = getAuthorityAsSigner();
@@ -92,6 +121,7 @@ export const parseAndValidatePlaceBidTx = async (
       walletAddress: bidder.toString(),
       username: 'Load Discord Username',
     });
+    return existingBidProofAuthority;
   } catch (error) {
     console.log(error);
 

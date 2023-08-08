@@ -246,11 +246,17 @@ export class BoxConfigWorker {
       }
       this.bidsCount++;
       await this.getBox();
-      await parseAndValidatePlaceBidTx(
+      const existingAuth = await parseAndValidatePlaceBidTx(
         transaction,
         this.bidders,
         this.hasResolved,
       );
+
+      if (existingAuth) {
+        this.subscriberService.pubSub.publish('overbidden', {
+          overbidden: existingAuth,
+        });
+      }
       await this.getBox();
       return true;
     } catch (error) {

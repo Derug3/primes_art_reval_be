@@ -10,6 +10,7 @@ import { SubscriberModule } from './subscriber/subscriber.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { NftModule } from './nft/nft.module';
 import { RecoverBoxModule } from './recover_box/recover_box.module';
+import { SubscriberService } from './subscriber/subscriber.service';
 
 @Module({
   imports: [
@@ -30,7 +31,14 @@ import { RecoverBoxModule } from './recover_box/recover_box.module';
       autoSchemaFile: true,
       include: [BoxConfigModule, NftModule],
       subscriptions: {
-        'graphql-ws': true,
+        'graphql-ws': {
+          onConnect: (ctx) => {
+            SubscriberService.setConnected();
+          },
+          onDisconnect: (_) => {
+            SubscriberService.setDisconnected();
+          },
+        },
         'subscriptions-transport-ws': true,
       },
     }),
