@@ -11,6 +11,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { NftModule } from './nft/nft.module';
 import { RecoverBoxModule } from './recover_box/recover_box.module';
 import { SubscriberService } from './subscriber/subscriber.service';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -29,14 +30,16 @@ import { SubscriberService } from './subscriber/subscriber.service';
       driver: ApolloDriver,
       playground: true,
       autoSchemaFile: true,
-      include: [BoxConfigModule, NftModule],
+      include: [BoxConfigModule, NftModule, UserModule],
       subscriptions: {
         'graphql-ws': {
           onConnect: (ctx) => {
-            SubscriberService.setConnected();
+            console.log('USER CONN:', ctx);
+            new SubscriberService().pubSub.publish('userConnected', {});
           },
-          onDisconnect: (_) => {
-            SubscriberService.setDisconnected();
+          onDisconnect: (ctx) => {
+            console.log('USER DISCONN:', ctx);
+            new SubscriberService().pubSub.publish('userDisconnected', {});
           },
         },
         'subscriptions-transport-ws': true,
@@ -46,6 +49,7 @@ import { SubscriberService } from './subscriber/subscriber.service';
     RedisModule,
     NftModule,
     RecoverBoxModule,
+    UserModule,
   ],
 
   providers: [AppService],

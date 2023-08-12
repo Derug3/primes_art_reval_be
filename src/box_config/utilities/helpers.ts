@@ -31,6 +31,8 @@ export const programId = process.env.PROGRAM_ID!;
 
 const authority = process.env.AUTHORITY!;
 
+export const rolesEndpoint = process.env.ROLES_API_ENDPOINT!;
+
 const treasury = process.env.TREASURY!;
 
 export const getAuthorityAsSigner = () => {
