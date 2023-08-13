@@ -14,6 +14,8 @@ export class Nft {
   @Field()
   @Column({ nullable: true })
   nftName: string;
+  @Column({ nullable: true })
+  boxId: string;
   @Field()
   @Column({ nullable: true })
   nftUri: string;

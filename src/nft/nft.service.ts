@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan } from 'typeorm';
 import { Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
-
+import { chunk } from 'lodash';
 @Injectable()
 export class NftService {
   logger: Logger = new Logger(NftService.name);
@@ -17,36 +17,65 @@ export class NftService {
   async storeNfts() {
     try {
       const cdnUrl = this.configService.get<string>('NFT_CND_URL');
+      this.logger.log(`Started inserting of nfts!`);
 
       const cdnNfts = await (await fetch(cdnUrl, { method: 'GET' })).json();
+      if (cdnNfts.error) {
+        throw new BadRequestException(cdnNfts.error_message);
+      }
+
+      const items = cdnNfts.data.result;
+
+      this.logger.log(`Got ${items.length} NFTs`);
 
       await this.nftRepository.delete({});
 
       const nfts: Nft[] = await Promise.all(
-        cdnNfts.slice(0, 500).map(async (nftUri: any) => {
-          const nft = new Nft();
-          const nftData = await (await fetch(nftUri)).json();
-          nft.nftUri = nftUri;
-          nft.nftName = nftData.name;
-          nft.isInBox = false;
-          nft.reshuffleCount = 0;
-          nft.nftImage = nftData.image;
-          return nft;
+        items.map(async (item: any) => {
+          try {
+            const nft = new Nft();
+            nft.nftUri = item.nftUri;
+            nft.nftName = item.nftName;
+            nft.isInBox = false;
+            nft.reshuffleCount = 0;
+            nft.boxId = item.boxId === '' ? null : item.boxId;
+            nft.nftImage = item.imageUri;
+            return nft;
+          } catch (error) {
+            console.log(error);
+
+            return null;
+          }
         }),
       );
+      const chunkedNfts = chunk(
+        nfts.filter((n) => n !== null),
+        200,
+      );
 
-      await this.nftRepository.save(nfts);
+      for (const nftsChunk of chunkedNfts) {
+        await this.nftRepository.save(nftsChunk);
+      }
 
       return true;
     } catch (error) {
+      console.log(error);
+
       throw new BadRequestException(error.message);
     }
   }
 
-  getNonMinted() {
-    return this.nftRepository.find({
-      where: { minted: false, isInBox: false },
+  async getNonMinted(boxId: string) {
+    const boxNfts = await this.nftRepository.find({
+      where: { minted: false, isInBox: false, boxId },
     });
+    if (!boxNfts || boxNfts.length === 0) {
+      return this.nftRepository.find({
+        where: { minted: false, isInBox: false },
+      });
+    }
+
+    return boxNfts;
   }
 
   async updateNft(nftId: string, hasMinted: boolean) {

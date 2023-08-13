@@ -194,7 +194,7 @@ export class BoxConfigWorker {
   async setupBox() {
     try {
       this.logger.log('Box setup');
-      let nfts = await this.nftService.getNonMinted();
+      let nfts = await this.nftService.getNonMinted(this.box.boxId);
 
       if (nfts.length === 0) {
         this.box.boxState = BoxState.Minted;
