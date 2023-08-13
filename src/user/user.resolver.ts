@@ -11,7 +11,7 @@ export class UserResolver {
     return this.userService.storeUsers();
   }
 
-  @Query(() => User)
+  @Query(() => User, { nullable: true })
   getUserByWallet(@Args('wallet') wallet: string) {
     return this.userService.getUserByWallet(wallet);
   }
