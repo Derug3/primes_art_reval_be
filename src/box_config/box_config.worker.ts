@@ -5,10 +5,12 @@ import { BoxConfigRepository } from './repository/box.config.repository';
 import {
   Bidders,
   BoxConfigOutput,
+  BoxPool,
   BoxState,
   BoxTimigState,
 } from './types/box_config.types';
 import {
+  checkUserRole,
   initBoxIx,
   parseAndValidatePlaceBidTx,
   primeBoxSeed,
@@ -23,8 +25,14 @@ import Redis from 'ioredis';
 import * as dayjs from 'dayjs';
 import { NftService } from 'src/nft/nft.service';
 import { Nft } from 'src/nft/entity/nft.entity';
-import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import {
+  ComputeBudgetProgram,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Transaction,
+} from '@solana/web3.js';
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
+import { UserService } from 'src/user/user.service';
 
 export class BoxConfigWorker {
   box: BoxConfig;
@@ -46,6 +54,7 @@ export class BoxConfigWorker {
     private readonly redisService: Redis,
     private readonly nftService: NftService,
     private readonly recoverBoxService: RecoverBoxService,
+    private readonly userService: UserService,
   ) {
     this.box = boxConfig;
     this.bidsCount = 0;
@@ -244,12 +253,36 @@ export class BoxConfigWorker {
       if (this.boxTimingState.state !== BoxState.Active) {
         throw new Error('Invalid box state!');
       }
+      const placeBidIx = Transaction.from(transaction.data).instructions.filter(
+        (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
+      );
+
+      const wallet = placeBidIx[0].keys[1].pubkey.toString();
+
+      const relatedUser = await this.userService.getUserByWallet(wallet);
+
+      if (!relatedUser && this.box.boxPool !== BoxPool.Public) {
+        throw new BadRequestException(
+          "Invalid role. You don't have permission to bid on this box!",
+        );
+      }
+
+      console.log(relatedUser);
+
+      const permittedPool = checkUserRole(relatedUser);
+      if (permittedPool > this.box.boxPool) {
+        throw new BadRequestException(
+          "Invalid role. You don't have permission to bid on this box!",
+        );
+      }
+
       this.bidsCount++;
       await this.getBox();
       const existingAuth = await parseAndValidatePlaceBidTx(
         transaction,
         this.bidders,
         this.hasResolved,
+        relatedUser,
       );
 
       if (existingAuth) {
@@ -260,6 +293,8 @@ export class BoxConfigWorker {
       await this.getBox();
       return true;
     } catch (error) {
+      console.log(error);
+
       throw new BadRequestException(error.message);
     }
   }

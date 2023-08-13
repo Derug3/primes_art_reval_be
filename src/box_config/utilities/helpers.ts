@@ -19,6 +19,8 @@ import { Nft } from 'src/nft/entity/nft.entity';
 import { BoxType } from 'src/enum/enums';
 import { Bidders, BoxPool } from '../types/box_config.types';
 import { BadRequestException } from '@nestjs/common';
+import { User } from 'src/user/entity/user.entity';
+import { roles } from './rolesData';
 
 dotenv.config();
 export const sleep = async (ms: number) => {
@@ -61,6 +63,7 @@ export const parseAndValidatePlaceBidTx = async (
   tx: any,
   bidders: Bidders[],
   hasResolved: boolean,
+  user: User | null,
 ): Promise<string | null> => {
   try {
     const transaction = Transaction.from(tx.data);
@@ -76,35 +79,9 @@ export const parseAndValidatePlaceBidTx = async (
       throw new Error('Invalid program id');
     }
 
-    // const actionType = instructionsWithoutCb[0].data[8];
-    // let existingWpAddress: PublicKey | null = null;
-
-    // switch (actionType) {
-    //   case 0: {
-    //     existingWpAddress = instructionsWithoutCb[0].keys[6]?.pubkey ?? null;
-    //   }
-    //   case 1: {
-    //     existingWpAddress = instructionsWithoutCb[0].keys[6]?.pubkey ?? null;
-    //   }
-    //   case 2: {
-    //     existingWpAddress = instructionsWithoutCb[0].keys[6]?.pubkey ?? null;
-    //   }
-    //   case 3: {
-    //     existingWpAddress = instructionsWithoutCb[0].keys[9]?.pubkey ?? null;
-    //   }
-    // }
-
     if (instructionsWithoutCb[0].keys[5]) {
       existingBidProofAuthority =
         instructionsWithoutCb[0].keys[5].pubkey.toString();
-
-      // try {
-      //   const existingBidProof = await program.account.preSaleBidProof.fetch(
-      //     existingWpAddress,
-      //   );
-
-      //   existingBidProofAuthority = existingBidProof.authoriry.toString();
-      // } catch (error) {}
     }
 
     const authority = getAuthorityAsSigner();
@@ -124,7 +101,7 @@ export const parseAndValidatePlaceBidTx = async (
     bidders.push({
       bidAmount: box.activeBid.toNumber() / LAMPORTS_PER_SOL,
       walletAddress: bidder.toString(),
-      username: 'Load Discord Username',
+      username: user.discordUsername ?? bidder,
     });
     return existingBidProofAuthority;
   } catch (error) {
@@ -306,4 +283,11 @@ export const parseTransactionError = (data: any) => {
 
     return err;
   }
+};
+
+export const checkUserRole = (user: User) => {
+  const permittedPools = user.userRoles.map(
+    (userRole) => roles.find((r) => r.roleId === userRole.roleId)?.boxPool,
+  );
+  return Math.min(...permittedPools);
 };

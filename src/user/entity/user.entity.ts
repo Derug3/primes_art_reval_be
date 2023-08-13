@@ -4,7 +4,7 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 @ObjectType()
 export class DiscordRole {
   @Field()
-  roleId: number;
+  roleId: string;
   @Field()
   roleName: string;
 }

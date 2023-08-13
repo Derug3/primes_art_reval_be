@@ -18,6 +18,7 @@ import { NftService } from 'src/nft/nft.service';
 import { claimNft } from './utilities/helpers';
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { BoxType } from 'src/enum/enums';
+import { UserService } from 'src/user/user.service';
 @Injectable()
 export class BoxConfigService implements OnModuleInit {
   private saveOrUpdateBox: SaveOrUpdateBoxConfig;
@@ -31,6 +32,7 @@ export class BoxConfigService implements OnModuleInit {
     @InjectRedis()
     private readonly redisService: Redis,
     private readonly recoverBoxService: RecoverBoxService,
+    private readonly userService: UserService,
   ) {
     this.workers = [];
     this.saveOrUpdateBox = new SaveOrUpdateBoxConfig(boxConfigRepo);
@@ -50,6 +52,7 @@ export class BoxConfigService implements OnModuleInit {
               this.redisService,
               this.nftService,
               this.recoverBoxService,
+              this.userService,
             ),
           );
         });
@@ -98,6 +101,7 @@ export class BoxConfigService implements OnModuleInit {
         this.redisService,
         this.nftService,
         this.recoverBoxService,
+        this.userService,
       );
       this.workers.push(newWorker);
     }
