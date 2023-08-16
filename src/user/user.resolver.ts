@@ -19,30 +19,12 @@ export class UserResolver {
   @Query(() => User, { nullable: true })
   async getUserByWallet(@Args('wallet') wallet: string) {
     const user = await this.userService.getUserByWallet(wallet);
-    if (user) {
-      this.connectedCount++;
-      this.pubSub.publish('userConnectionChanged', {
-        userConnectionChanged: true,
-      });
-    }
-    return user;
-  }
 
-  handleDisconnect() {
-    this.logger.verbose('User disconnected');
-    this.connectedCount--;
-    this.pubSub.publish('userConnectionChanged', {
-      userConnectionChanged: false,
-    });
+    return user;
   }
 
   @Query(() => Number)
   getConnectedUsersCount() {
     return this.connectedCount;
-  }
-
-  @Subscription(() => Boolean)
-  userConnectionChanged() {
-    return this.pubSub.asyncIterator('userConnectionChanged');
   }
 }

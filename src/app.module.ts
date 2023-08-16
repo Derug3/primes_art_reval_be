@@ -26,15 +26,27 @@ import { SubscriberService } from './subscriber/subscriber.service';
       },
     }),
 
-    GraphQLModule.forRoot<ApolloDriverConfig>({
+    GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      playground: true,
-      autoSchemaFile: true,
-      include: [BoxConfigModule, NftModule, UserModule],
-      subscriptions: {
-        'graphql-ws': true,
-
-        'subscriptions-transport-ws': true,
+      imports: [SubscriberModule],
+      inject: [SubscriberService],
+      useFactory: (subscriberService: SubscriberService) => {
+        return {
+          playground: true,
+          autoSchemaFile: true,
+          include: [BoxConfigModule, NftModule, UserModule],
+          subscriptions: {
+            'graphql-ws': {
+              onConnect: () => {
+                subscriberService.setConnected();
+              },
+              onDisconnect: () => {
+                subscriberService.setDisconnected();
+              },
+            },
+            'subscriptions-transport-ws': true,
+          },
+        };
       },
     }),
     SubscriberModule,

@@ -1,12 +1,16 @@
+import { ApolloDriver } from '@nestjs/apollo';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PubSub } from 'graphql-subscriptions';
+import { BoxConfigModule } from 'src/box_config/box_config.module';
+import { NftModule } from 'src/nft/nft.module';
+import { UserModule } from 'src/user/user.module';
 import { StatsRepository } from './repository/stats.repository';
 @Injectable()
 export class SubscriberService implements OnModuleInit {
   pubSub: PubSub;
 
-  static connectedUsersCount = 0;
+  connectedUsersCount = 0;
 
   constructor(
     @InjectRepository(StatsRepository)
@@ -26,18 +30,20 @@ export class SubscriberService implements OnModuleInit {
   }
 
   async setConnected() {
+    this.connectedUsersCount++;
     await this.pubSub.publish('userConnectionChanged', {
       userConnectionChanged: true,
     });
   }
 
   async setDisconnected() {
+    this.connectedUsersCount--;
     await this.pubSub.publish('userConnectionChanged', {
       userConnectionChanged: false,
     });
   }
 
   async getConnectedUsersCount() {
-    return (await this.statsRepo.findOne({})).connectedUsersCount;
+    return this.connectedUsersCount;
   }
 }
