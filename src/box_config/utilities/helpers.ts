@@ -101,7 +101,7 @@ export const parseAndValidatePlaceBidTx = async (
     bidders.push({
       bidAmount: box.activeBid.toNumber() / LAMPORTS_PER_SOL,
       walletAddress: bidder.toString(),
-      username: user.discordUsername ?? bidder,
+      username: user?.discordUsername ?? bidder.slice(0, 6) + '...',
     });
     return existingBidProofAuthority;
   } catch (error) {
