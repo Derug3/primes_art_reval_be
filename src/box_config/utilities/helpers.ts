@@ -286,8 +286,12 @@ export const parseTransactionError = (data: any) => {
 };
 
 export const checkUserRole = (user: User) => {
-  const permittedPools = user.userRoles.map(
-    (userRole) => roles.find((r) => r.roleId === userRole.roleId)?.boxPool,
-  );
+  const permittedPools =
+    user?.userRoles.map(
+      (userRole) => roles.find((r) => r.roleId === userRole.roleId)?.boxPool,
+    ) ?? [];
+  if (permittedPools.length === 0) {
+    return BoxPool.Public;
+  }
   return Math.min(...permittedPools);
 };

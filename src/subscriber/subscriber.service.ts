@@ -1,20 +1,43 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { PubSub } from 'graphql-subscriptions';
+import { StatsRepository } from './repository/stats.repository';
 @Injectable()
-export class SubscriberService {
+export class SubscriberService implements OnModuleInit {
   pubSub: PubSub;
 
   static connectedUsersCount = 0;
 
-  constructor() {
+  constructor(
+    @InjectRepository(StatsRepository)
+    private readonly statsRepo?: StatsRepository,
+  ) {
     this.pubSub = new PubSub();
   }
-
-  static setConnected() {
-    this.connectedUsersCount += 1;
+  async onModuleInit() {
+    try {
+      const stats = await this.statsRepo.find();
+      if (!stats || stats.length === 0) {
+        await this.statsRepo.save(stats);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  static setDisconnected() {
-    this.connectedUsersCount -= 1;
+  async setConnected() {
+    await this.pubSub.publish('userConnectionChanged', {
+      userConnectionChanged: true,
+    });
+  }
+
+  async setDisconnected() {
+    await this.pubSub.publish('userConnectionChanged', {
+      userConnectionChanged: false,
+    });
+  }
+
+  async getConnectedUsersCount() {
+    return (await this.statsRepo.findOne({})).connectedUsersCount;
   }
 }
