@@ -30,7 +30,7 @@ export class BoxConfigResolver {
     return this.boxConfigService.deleteBox(boxId);
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => Boolean, { nullable: true })
   placeBid(
     @Args('serializedTransaction') serializedTransaction: string,
     @Args('boxId') boxId: string,

@@ -34,11 +34,9 @@ import { UserModule } from './user/user.module';
       subscriptions: {
         'graphql-ws': {
           onConnect: (ctx) => {
-            console.log('USER CONN:', ctx);
             new SubscriberService().pubSub.publish('userConnected', {});
           },
           onDisconnect: (ctx) => {
-            console.log('USER DISCONN:', ctx);
             new SubscriberService().pubSub.publish('userDisconnected', {});
           },
         },

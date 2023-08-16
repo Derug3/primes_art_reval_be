@@ -47,6 +47,8 @@ export class BoxConfigWorker {
 
   logger = new Logger(BoxConfigWorker.name);
 
+  additionalTimeout: number;
+
   constructor(
     private readonly subscriberService: SubscriberService,
     private readonly boxConfigRepo: BoxConfigRepository,
@@ -62,6 +64,7 @@ export class BoxConfigWorker {
     this.currentBid = 0;
     this.bidders = [];
     this.hasResolved = false;
+    this.additionalTimeout = 0;
 
     this.start();
   }
@@ -74,6 +77,7 @@ export class BoxConfigWorker {
     this.isWon = false;
     this.hasResolved = false;
     this.bidders = [];
+    this.additionalTimeout = 0;
 
     if (this.box.initialDelay && this.box.executionsCount === 0) {
       this.boxTimingState = {
@@ -129,6 +133,13 @@ export class BoxConfigWorker {
     await this.getBox();
     this.logger.log('Box emitted');
     await sleep(this.box.boxDuration * 1000);
+
+    this.logger.log(this.additionalTimeout, 'ADD TIMEOUT');
+    while (this.additionalTimeout > 0) {
+      let sleepAmount = this.additionalTimeout;
+      this.additionalTimeout = 0;
+      await sleep(sleepAmount * 1000);
+    }
 
     await this.cooldown();
   }
@@ -267,8 +278,6 @@ export class BoxConfigWorker {
         );
       }
 
-      console.log(relatedUser);
-
       const permittedPool = checkUserRole(relatedUser);
       if (permittedPool > this.box.boxPool) {
         throw new BadRequestException(
@@ -289,6 +298,17 @@ export class BoxConfigWorker {
         this.subscriberService.pubSub.publish('overbidden', {
           overbidden: existingAuth,
         });
+      }
+      await this.getBox();
+      const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
+      if (remainingSeconds < 15) {
+        this.boxTimingState = {
+          //added 16 secs because of rpc fetch (this way times are ideally synced)
+          endsAt: this.boxTimingState.endsAt + remainingSeconds + 16,
+          startedAt: dayjs().unix(),
+          state: BoxState.Active,
+        };
+        this.additionalTimeout = remainingSeconds + 15;
       }
       await this.getBox();
       return true;

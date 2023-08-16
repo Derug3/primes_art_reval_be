@@ -141,7 +141,12 @@ export class BoxConfigService implements OnModuleInit {
 
     if (!box) throw new NotFoundException('Given box not found!');
 
-    return box.placeBid(serializedTx);
+    try {
+      box.placeBid(serializedTx);
+      return true;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   checkBoxExistance(boxId: string) {

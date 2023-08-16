@@ -23,9 +23,9 @@ import { User } from 'src/user/entity/user.entity';
 import { roles } from './rolesData';
 
 dotenv.config();
-export const sleep = async (ms: number) => {
+export const sleep = async (ms: number): Promise<NodeJS.Timeout> => {
   return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+    return setTimeout(resolve, ms);
   });
 };
 
