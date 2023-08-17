@@ -19,6 +19,7 @@ import { claimNft } from './utilities/helpers';
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { BoxType } from 'src/enum/enums';
 import { UserService } from 'src/user/user.service';
+import { StatisticsService } from 'src/statistics/statistics.service';
 @Injectable()
 export class BoxConfigService implements OnModuleInit {
   private saveOrUpdateBox: SaveOrUpdateBoxConfig;
@@ -33,6 +34,7 @@ export class BoxConfigService implements OnModuleInit {
     private readonly redisService: Redis,
     private readonly recoverBoxService: RecoverBoxService,
     private readonly userService: UserService,
+    private readonly statsSerivce: StatisticsService,
   ) {
     this.workers = [];
     this.saveOrUpdateBox = new SaveOrUpdateBoxConfig(boxConfigRepo);
@@ -53,6 +55,7 @@ export class BoxConfigService implements OnModuleInit {
               this.nftService,
               this.recoverBoxService,
               this.userService,
+              this.statsSerivce,
             ),
           );
         });
@@ -102,6 +105,7 @@ export class BoxConfigService implements OnModuleInit {
         this.nftService,
         this.recoverBoxService,
         this.userService,
+        this.statsSerivce,
       );
       this.workers.push(newWorker);
     }
@@ -141,12 +145,7 @@ export class BoxConfigService implements OnModuleInit {
 
     if (!box) throw new NotFoundException('Given box not found!');
 
-    try {
-      box.placeBid(serializedTx);
-      return true;
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return box.placeBid(serializedTx);
   }
 
   checkBoxExistance(boxId: string) {

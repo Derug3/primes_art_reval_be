@@ -1,4 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { BoxPool } from 'src/box_config/types/box_config.types';
 import { BoxType } from 'src/enum/enums';
 import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm';
 
@@ -19,6 +20,9 @@ export class Nft {
   @Field()
   @Column({ nullable: true })
   nftUri: string;
+  @Column({ nullable: true })
+  @Field({ nullable: true })
+  boxPool: number;
   @Field()
   @Column({ nullable: true })
   isInBox: boolean;

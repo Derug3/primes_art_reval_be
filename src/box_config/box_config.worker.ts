@@ -33,6 +33,7 @@ import {
 } from '@solana/web3.js';
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { UserService } from 'src/user/user.service';
+import { StatisticsService } from 'src/statistics/statistics.service';
 
 export class BoxConfigWorker {
   box: BoxConfig;
@@ -44,6 +45,8 @@ export class BoxConfigWorker {
   isWon: boolean;
   hasResolved: boolean;
   bidders: Bidders[];
+
+  secondsExtending;
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -57,6 +60,7 @@ export class BoxConfigWorker {
     private readonly nftService: NftService,
     private readonly recoverBoxService: RecoverBoxService,
     private readonly userService: UserService,
+    private readonly statsService: StatisticsService,
   ) {
     this.box = boxConfig;
     this.bidsCount = 0;
@@ -65,6 +69,7 @@ export class BoxConfigWorker {
     this.bidders = [];
     this.hasResolved = false;
     this.additionalTimeout = 0;
+    this.secondsExtending = 15;
 
     this.start();
   }
@@ -88,6 +93,7 @@ export class BoxConfigWorker {
       await this.publishBox();
       await sleep(this.box.initialDelay * 1000);
     }
+    this.secondsExtending = await this.statsService.getStatsExtending();
     if (this.box.boxId) {
       const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
 
@@ -214,7 +220,10 @@ export class BoxConfigWorker {
   async setupBox() {
     try {
       this.logger.log('Box setup');
-      let nfts = await this.nftService.getNonMinted(this.box.boxId);
+      let nfts = await this.nftService.getNonMinted(
+        this.box.boxId,
+        this.box.boxPool,
+      );
 
       if (nfts.length === 0) {
         this.box.boxState = BoxState.Minted;
@@ -301,20 +310,24 @@ export class BoxConfigWorker {
       }
       await this.getBox();
       const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
-      if (remainingSeconds < 15) {
+      if (remainingSeconds < this.secondsExtending) {
         this.boxTimingState = {
           //added 16 secs because of rpc fetch (this way times are ideally synced)
-          endsAt: this.boxTimingState.endsAt + remainingSeconds + 16,
+          endsAt:
+            this.boxTimingState.endsAt +
+            remainingSeconds +
+            this.secondsExtending +
+            1,
           startedAt: dayjs().unix(),
           state: BoxState.Active,
         };
-        this.additionalTimeout = remainingSeconds + 15;
+        this.additionalTimeout = remainingSeconds + this.secondsExtending;
       }
+
       await this.getBox();
+      await this.statsService.increaseBids();
       return true;
     } catch (error) {
-      console.log(error);
-
       throw new BadRequestException(error.message);
     }
   }
@@ -334,6 +347,9 @@ export class BoxConfigWorker {
         (boxData.bidder && this.boxTimingState.state === BoxState.Cooldown)
       ) {
         this.isWon = true;
+        await this.statsService.increaseSales(
+          boxData.activeBid.toNumber() / LAMPORTS_PER_SOL,
+        );
       }
       await this.publishBox();
     } catch (error) {

@@ -5,7 +5,7 @@ import { BoxConfig } from './box_config/entity/box_config.entity';
 import { Nft } from './nft/entity/nft.entity';
 import { RecoverBox } from './recover_box/entity/recover_box.entity';
 import { User } from './user/entity/user.entity';
-import { StatsEntity } from './subscriber/entity/stats.entity';
+import { StatsEntity } from './statistics/entity/stats.entity';
 export const typeormConfig = (): TypeOrmModuleOptions => {
   dotenv.config();
 

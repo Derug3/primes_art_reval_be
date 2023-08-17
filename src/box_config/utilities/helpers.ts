@@ -295,3 +295,23 @@ export const checkUserRole = (user: User) => {
   }
   return Math.min(...permittedPools);
 };
+
+export const fromBoxPoolString = (box: string) => {
+  switch (box) {
+    case 'Public': {
+      return BoxPool.Public;
+    }
+    case 'OG': {
+      return BoxPool.OG;
+    }
+    case 'PreSale': {
+      return BoxPool.PreSale;
+    }
+    case 'PrimeList': {
+      return BoxPool.PrimeList;
+    }
+    default: {
+      return null;
+    }
+  }
+};

@@ -12,6 +12,7 @@ import { NftModule } from './nft/nft.module';
 import { RecoverBoxModule } from './recover_box/recover_box.module';
 import { UserModule } from './user/user.module';
 import { SubscriberService } from './subscriber/subscriber.service';
+import { StatisticsModule } from './statistics/statistics.module';
 
 @Module({
   imports: [
@@ -34,7 +35,7 @@ import { SubscriberService } from './subscriber/subscriber.service';
         return {
           playground: true,
           autoSchemaFile: true,
-          include: [BoxConfigModule, NftModule, UserModule],
+          include: [BoxConfigModule, NftModule, UserModule, StatisticsModule],
           subscriptions: {
             'graphql-ws': {
               onConnect: () => {
@@ -54,6 +55,7 @@ import { SubscriberService } from './subscriber/subscriber.service';
     NftModule,
     RecoverBoxModule,
     UserModule,
+    StatisticsModule,
   ],
 
   providers: [AppService],

@@ -5,6 +5,9 @@ import { MoreThan } from 'typeorm';
 import { Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 import { chunk } from 'lodash';
+import { BoxType } from 'src/enum/enums';
+import { fromBoxPoolString } from 'src/box_config/utilities/helpers';
+import { BoxPool } from 'src/box_config/types/box_config.types';
 @Injectable()
 export class NftService {
   logger: Logger = new Logger(NftService.name);
@@ -40,6 +43,8 @@ export class NftService {
             nft.reshuffleCount = 0;
             nft.boxId = item.boxId === '' ? null : item.boxId;
             nft.nftImage = item.imageUri;
+            nft.boxPool = fromBoxPoolString(item.box);
+
             return nft;
           } catch (error) {
             console.log(error);
@@ -65,17 +70,23 @@ export class NftService {
     }
   }
 
-  async getNonMinted(boxId: string) {
+  async getNonMinted(boxId: string, boxPool: BoxPool) {
     const boxNfts = await this.nftRepository.find({
-      where: { minted: false, isInBox: false, boxId },
+      where: { minted: false, isInBox: false, boxPool: boxPool as number },
     });
+
     if (!boxNfts || boxNfts.length === 0) {
       return this.nftRepository.find({
         where: { minted: false, isInBox: false, boxId: null },
       });
+    } else {
+      const boxIdNfts = boxNfts.filter((nft) => nft.boxId === boxId);
+      if (boxIdNfts.length > 0) {
+        return boxIdNfts;
+      } else {
+        return boxNfts;
+      }
     }
-
-    return boxNfts;
   }
 
   async updateNft(nftId: string, hasMinted: boolean) {
