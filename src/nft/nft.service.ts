@@ -77,7 +77,7 @@ export class NftService {
 
     if (!boxNfts || boxNfts.length === 0) {
       return this.nftRepository.find({
-        where: { minted: false, isInBox: false, boxId: null },
+        where: { minted: false, isInBox: false, boxPool: null },
       });
     } else {
       const boxIdNfts = boxNfts.filter((nft) => nft.boxId === boxId);
