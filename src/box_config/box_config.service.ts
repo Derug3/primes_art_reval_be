@@ -6,7 +6,6 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { RedisService } from 'nestjs-redis';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { BoxConfigWorker } from './box_config.worker';
 import { BoxConfigRepository } from './repository/box.config.repository';

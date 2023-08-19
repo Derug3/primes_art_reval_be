@@ -30,7 +30,7 @@ export class SubscriberResolver {
 
   @Query(() => Number)
   getConnectedUsersCount() {
-    return this.subscriberService.connectedUsersCount;
+    return this.subscriberService.getConnectedUsersCount();
   }
 
   @Subscription(() => Boolean)

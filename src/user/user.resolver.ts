@@ -7,7 +7,6 @@ import { UserService } from './user.service';
 @Resolver()
 export class UserResolver {
   pubSub: PubSub = new PubSub();
-  connectedCount = 0;
   logger = new Logger(UserResolver.name);
   constructor(private readonly userService: UserService) {}
 
@@ -21,10 +20,5 @@ export class UserResolver {
     const user = await this.userService.getUserByWallet(wallet);
 
     return user;
-  }
-
-  @Query(() => Number)
-  getConnectedUsersCount() {
-    return this.connectedCount;
   }
 }

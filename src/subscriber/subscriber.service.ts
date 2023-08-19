@@ -1,32 +1,32 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
-import { StatsRepository } from '../statistics/repository/stats.repository';
+import { Redis } from 'ioredis';
+import { InjectRedis } from '@liaoliaots/nestjs-redis';
+
 @Injectable()
 export class SubscriberService {
   pubSub: PubSub;
 
-  connectedUsersCount = 0;
-
-  constructor() {
+  constructor(@InjectRedis() private readonly redisService: Redis) {
     this.pubSub = new PubSub();
   }
 
   async setConnected() {
-    this.connectedUsersCount++;
+    await this.redisService.incr('liveUsersCount');
     await this.pubSub.publish('userConnectionChanged', {
       userConnectionChanged: true,
     });
   }
 
   async setDisconnected() {
-    this.connectedUsersCount--;
+    await this.redisService.decr('liveUsersCount');
     await this.pubSub.publish('userConnectionChanged', {
       userConnectionChanged: false,
     });
   }
 
   async getConnectedUsersCount() {
-    return this.connectedUsersCount;
+    const connected = await this.redisService.get('liveUsersCount');
+    return connected;
   }
 }
