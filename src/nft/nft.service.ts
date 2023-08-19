@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan } from 'typeorm';
-import { Nft } from './entity/nft.entity';
+import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 import { chunk } from 'lodash';
 import { BoxType } from 'src/enum/enums';
@@ -142,5 +142,34 @@ export class NftService {
 
     await this.nftRepository.save(nfts);
     return true;
+  }
+
+  async getBoxNfts() {
+    const boxNfts: BoxNfts[] = [];
+    const allNfts = await this.nftRepository.find();
+    allNfts.forEach((nft) => {
+      const addedIndex = boxNfts.findIndex(
+        (bNft) => bNft.boxPool === nft.boxPool ?? BoxPool.Public,
+      );
+      if (addedIndex < 0) {
+        const mintedCount = allNfts.filter(
+          (mNft) =>
+            mNft.boxPool === (nft.boxPool ?? BoxPool.Public) && mNft.minted,
+        ).length;
+        boxNfts.push({
+          boxPool: nft.boxPool ?? BoxPool.Public,
+          nftsCount: 1,
+          mintedCount,
+        });
+      } else {
+        boxNfts[addedIndex] = {
+          boxPool: nft.boxPool ?? BoxPool.Public,
+          nftsCount: boxNfts[addedIndex].nftsCount + 1,
+          mintedCount: boxNfts[addedIndex].mintedCount,
+        };
+      }
+    });
+
+    return boxNfts;
   }
 }

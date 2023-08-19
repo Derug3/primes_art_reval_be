@@ -1,5 +1,5 @@
 import { Args, Mutation, Resolver, Query } from '@nestjs/graphql';
-import { Nft } from './entity/nft.entity';
+import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftService } from './nft.service';
 
 @Resolver()
@@ -29,5 +29,10 @@ export class NftResolver {
   @Mutation(() => Boolean)
   mutateNfts() {
     return this.nftService.updateNfts();
+  }
+
+  @Query(() => [BoxNfts])
+  getBoxNfts() {
+    return this.nftService.getBoxNfts();
   }
 }

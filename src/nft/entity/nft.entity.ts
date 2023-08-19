@@ -45,3 +45,13 @@ export class Nft {
   @Column({ default: 0 })
   reshuffleCount: number;
 }
+
+@ObjectType()
+export class BoxNfts {
+  @Field(() => BoxPool)
+  boxPool: BoxPool;
+  @Field()
+  nftsCount: number;
+  @Field()
+  mintedCount: number;
+}

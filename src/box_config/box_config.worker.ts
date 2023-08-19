@@ -137,7 +137,7 @@ export class BoxConfigWorker {
     };
     await initBoxIx(this.getBoxPda(), this.box.boxId, this.box, this.activeNft);
     await this.getBox();
-    this.logger.log('Box emitted');
+
     await sleep(this.box.boxDuration * 1000);
 
     this.logger.log(this.additionalTimeout, 'ADD TIMEOUT');
@@ -191,6 +191,7 @@ export class BoxConfigWorker {
         await this.nftService.updateNft(this.activeNft.nftId, true);
       }
       await this.redisService.del(this.activeNft.nftId);
+      this.logger.log(`Deleted key from redis`);
       await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       this.box.executionsCount += 1;
       await this.getBox();
@@ -252,7 +253,6 @@ export class BoxConfigWorker {
         this.activeNft = randomNft;
       } while (acknowledged === 0);
 
-      this.logger.debug(`Toggling nft in db with id ${this.activeNft.nftId}`);
       await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
       return true;
     } catch (error) {
