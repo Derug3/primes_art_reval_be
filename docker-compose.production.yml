@@ -10,9 +10,7 @@ services:
     environment:
       NODE_ENV: production
     ports:
-      - "${APP_EXTERNAL_PORT:-9000}:9000"
-    volumes:
-      - ./:/usr/src/app
+      - "${APP_EXTERNAL_PORT:-3000}:3000"
     networks:
       - primes_network
     depends_on:
