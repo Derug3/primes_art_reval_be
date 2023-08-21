@@ -6,9 +6,8 @@ COPY ["./package.json","./package-lock.json","./"]
 
 EXPOSE 3000
 
-COPY . .
-
 RUN npm install
 
+COPY . .
 
-CMD ["npm","run","start:dev"]
+CMD ["sh", "-c", "if [ \"$NODE_ENV\" = \"development\" ]; then npm run start:dev; else npm run start:prod; fi"]
