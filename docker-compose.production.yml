@@ -1,0 +1,109 @@
+version: '3'
+
+services:
+  primes_api:
+    build: ./
+    container_name: "${COMPOSE_PROJECT_NAME}_primes_api"
+    restart: always
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+    ports:
+      - "${APP_EXTERNAL_PORT:-9000}:9000"
+    networks:
+      - primes_network
+    depends_on:
+      primes_redis:
+        condition: service_healthy
+      primes_db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  primes_redis:
+    container_name: "${COMPOSE_PROJECT_NAME}_primes_redis"
+    image: redis:latest
+    ports:
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: redis-cli ping
+      interval: 5s
+      timeout: 2s
+      retries: 30
+    environment:
+      REDIS_USERNAME: ${REDIS_USERNAME}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - primes_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    container_name: "${COMPOSE_PROJECT_NAME}_redis-insight"
+    ports:
+      - "${REDIS_INSIGHT_EXTERNAL_PORT:-8001}:8001"
+    environment:
+      RITRUSTEDORIGINS: ${REDIS_INSIGHT_ORIGINS:-http://localhost:8001}
+    networks:
+      - primes_network
+    depends_on:
+      primes_redis:
+        condition: service_healthy
+
+  primes_db:
+    image: postgres:14.2-alpine
+    container_name: "${COMPOSE_PROJECT_NAME}_primes_db"
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - '${DB_EXTERNAL_PORT:-5432}:5432'
+    healthcheck:
+      test: [ 'CMD-SHELL', "sh -c 'pg_isready -U ${DB_USERNAME} -d ${DB_NAME}'" ]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+    shm_size: 1gb
+    restart: unless-stopped
+    networks:
+      - primes_network
+    volumes:
+      - pg:/var/lib/postgresql/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: "${COMPOSE_PROJECT_NAME}_primes_pgadmin"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_DISABLE_POSTFIX: 1
+      PGADMIN_CONFIG_AUTHENTICATION_SOURCES: "['webserver']"
+      PGADMIN_CONFIG_WEBSERVER_AUTO_CREATE_USER: 'True'
+      PGADMIN_CONFIG_MASTER_PASSWORD: 'True'
+    ports:
+      - '${PGADMIN_EXTERNAL_PORT:-3400}:80'
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    restart: unless-stopped
+    networks:
+      - primes_network
+    depends_on:
+      primes_db:
+        condition: service_healthy
+
+networks:
+  primes_network:
+    driver: bridge
+
+volumes:
+  pg:
+  pgadmin:
+  redis_data:
