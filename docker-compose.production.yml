@@ -80,12 +80,17 @@ services:
     image: dpage/pgadmin4:4.30
     container_name: "${COMPOSE_PROJECT_NAME}_primes_pgadmin"
     environment:
-      PGADMIN_DEFAULT_EMAIL: primes@admin.com
-      PGADMIN_DEFAULT_PASSWORD: primesadmin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_DISABLE_POSTFIX: 1
+      PGADMIN_CONFIG_AUTHENTICATION_SOURCES: "['webserver']"
+      PGADMIN_CONFIG_WEBSERVER_AUTO_CREATE_USER: 'True'
+      PGADMIN_CONFIG_MASTER_PASSWORD: 'True'
     ports:
       - '${PGADMIN_EXTERNAL_PORT:-3400}:80'
     volumes:
       - pgadmin:/var/lib/pgadmin
+    restart: unless-stopped
     networks:
       - primes_network
     depends_on:
