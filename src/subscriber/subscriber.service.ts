@@ -6,7 +6,6 @@ import { InjectRedis } from '@liaoliaots/nestjs-redis';
 @Injectable()
 export class SubscriberService implements OnModuleInit {
   pubSub: PubSub;
-
   constructor(@InjectRedis() private readonly redisService: Redis) {
     this.pubSub = new PubSub();
   }
@@ -14,6 +13,7 @@ export class SubscriberService implements OnModuleInit {
     this.redisService.set('liveUsersCount', 0);
     this.redisService.flushall();
   }
+
   async setConnected() {
     await this.redisService.incr('liveUsersCount');
     await this.pubSub.publish('userConnectionChanged', {
@@ -26,6 +26,7 @@ export class SubscriberService implements OnModuleInit {
       userConnectionChanged: false,
     });
   }
+
   async getConnectedUsersCount() {
     const connected = await this.redisService.get('liveUsersCount');
     return connected;

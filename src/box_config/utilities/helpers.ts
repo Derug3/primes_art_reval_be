@@ -122,17 +122,10 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
 
     const boxData = await program.account.boxData.fetch(boxAddress);
 
-    console.log(boxData, 'BDATA');
-
     const [winningProof] = PublicKey.findProgramAddressSync(
-      [
-        primeBoxWinnerSeed,
-        boxData.winnerAddress?.toBuffer() ?? boxData.bidder?.toBuffer(),
-        Buffer.from(boxData.nftId),
-      ],
+      [primeBoxWinnerSeed, Buffer.from(boxData.nftId)],
       program.programId,
     );
-
     const ix = await program.methods
       .resolveBox()
       .accounts({
@@ -208,7 +201,7 @@ export const initBoxIx = async (
         buyNowPrice: box.buyNowPrice
           ? new BN(box.buyNowPrice * LAMPORTS_PER_SOL)
           : null,
-        nftId: nft.nftId.split('-')[0],
+        nftId: nft.nftId,
         nftUri: nft.nftUri,
         boxPool: parseBoxPool(box.boxPool),
         boxType: parseBoxType(box.boxType),
@@ -314,4 +307,13 @@ export const fromBoxPoolString = (box: string) => {
       return null;
     }
   }
+};
+
+export const getProofPda = (nft: Nft) => {
+  const [proofPda] = PublicKey.findProgramAddressSync(
+    [primeBoxWinnerSeed, Buffer.from(nft.nftId)],
+    program.programId,
+  );
+
+  return proofPda;
 };

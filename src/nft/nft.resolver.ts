@@ -26,11 +26,6 @@ export class NftResolver {
     return this.nftService.getMinted();
   }
 
-  @Mutation(() => Boolean)
-  mutateNfts() {
-    return this.nftService.updateNfts();
-  }
-
   @Query(() => [BoxNfts])
   getBoxNfts() {
     return this.nftService.getBoxNfts();

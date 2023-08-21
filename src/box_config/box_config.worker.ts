@@ -11,6 +11,8 @@ import {
 } from './types/box_config.types';
 import {
   checkUserRole,
+  connection,
+  getProofPda,
   initBoxIx,
   parseAndValidatePlaceBidTx,
   primeBoxSeed,
@@ -46,7 +48,7 @@ export class BoxConfigWorker {
   hasResolved: boolean;
   bidders: Bidders[];
 
-  secondsExtending;
+  secondsExtending: number;
 
   logger = new Logger(BoxConfigWorker.name);
 
@@ -84,7 +86,7 @@ export class BoxConfigWorker {
     this.bidders = [];
     this.additionalTimeout = 0;
 
-    if (this.box.initialDelay && this.box.executionsCount === 0) {
+    if (this.box.initialDelay) {
       this.boxTimingState = {
         endsAt: dayjs().add(this.box.initialDelay, 'seconds').unix(),
         startedAt: dayjs().unix(),
@@ -92,6 +94,7 @@ export class BoxConfigWorker {
       };
       await this.publishBox();
       await sleep(this.box.initialDelay * 1000);
+      await this.boxConfigRepo.save({ ...this.box, initialDelay: null });
     }
     this.secondsExtending = await this.statsService.getStatsExtending();
     if (this.box.boxId) {
@@ -123,10 +126,14 @@ export class BoxConfigWorker {
       }
       this.box = newBoxState;
     }
-
     const boxSetup = await this.setupBox();
-    this.logger.debug(boxSetup);
+    this.logger.debug(`Box setup successfully:${boxSetup}`);
     if (!boxSetup) {
+      this.boxTimingState = {
+        endsAt: -1,
+        startedAt: -1,
+        state: BoxState.Removed,
+      };
       await this.publishBox();
       return;
     }
@@ -140,7 +147,6 @@ export class BoxConfigWorker {
 
     await sleep(this.box.boxDuration * 1000);
 
-    this.logger.log(this.additionalTimeout, 'ADD TIMEOUT');
     while (this.additionalTimeout > 0) {
       let sleepAmount = this.additionalTimeout;
       this.additionalTimeout = 0;
@@ -174,26 +180,23 @@ export class BoxConfigWorker {
   async resolveBox() {
     try {
       this.logger.log('Resolved box');
-
       const boxPda = this.getBoxPda();
       const box = await program.account.boxData.fetch(boxPda);
       let resolved = false;
       let hasTriedResolving = false;
-      if (box.winnerAddress || box.bidder) {
+      if ((box.winnerAddress || box.bidder) && !this.isWon) {
         resolved = await resolveBoxIx(boxPda);
         hasTriedResolving = true;
       }
       if (!this.isWon && !this.hasResolved && !resolved) {
         this.logger.warn('Non resolved NFT');
         await this.nftService.updateNft(this.activeNft.nftId, false);
+        await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       } else {
         this.logger.log('Resolved NFT');
         await this.nftService.updateNft(this.activeNft.nftId, true);
       }
-      await this.redisService.del(this.activeNft.nftId);
-      this.logger.log(`Deleted key from redis`);
-      await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
-      this.box.executionsCount += 1;
+
       await this.getBox();
       if (!resolved && !this.hasResolved && hasTriedResolving) {
         const boxAddress = this.getBoxPda();
@@ -220,11 +223,17 @@ export class BoxConfigWorker {
 
   async setupBox() {
     try {
-      this.logger.log('Box setup');
       let nfts = await this.nftService.getNonMinted(
         this.box.boxId,
         this.box.boxPool,
       );
+
+      console.log(nfts);
+
+      if (this.activeNft) {
+        await this.redisService.del(this.activeNft.nftId);
+        this.logger.log(`Deleted key from redis`);
+      }
 
       if (nfts.length === 0) {
         this.box.boxState = BoxState.Minted;
@@ -236,43 +245,52 @@ export class BoxConfigWorker {
         await this.boxConfigRepo.save(this.box);
         return false;
       }
-
       const nonShuffled = nfts.filter((n) => n.reshuffleCount === 0);
-
       if (nonShuffled.length !== 0) {
         nfts = nonShuffled;
       }
       let acknowledged = 0;
+      const filteredNfts: Nft[] = [];
+      await Promise.all(
+        nfts.map(async (nft, index) => {
+          const proofPda = getProofPda(nft);
+          const accountInfo = await connection.getAccountInfo(proofPda);
+          if (
+            accountInfo === null &&
+            (await this.redisService.exists(nft.nftId)) === 0
+          ) {
+            filteredNfts.push(nft);
+          }
+        }),
+      );
+      this.logger.log(`Box setup with available NFTs: ${filteredNfts.length}`);
+      if (filteredNfts.length === 0) return false;
       do {
-        const rand = Math.round(Math.random() * (nfts.length - 1));
-        const randomNft = nfts[rand];
+        const rand = Math.round(Math.random() * (filteredNfts.length - 1));
+        const randomNft = filteredNfts[rand];
+
         acknowledged = await this.redisService.setnx(
           randomNft.nftId,
           JSON.stringify(randomNft),
         );
+
         this.activeNft = randomNft;
       } while (acknowledged === 0);
-
       await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
       return true;
     } catch (error) {
+      console.log(error);
       this.logger.error(error.message);
     }
   }
-
   async publishBox() {
     await this.subscriberService.pubSub.publish('boxConfig', {
       boxConfig: this.mapToDto(),
     });
   }
-
   async placeBid(serializedTransaction: string) {
     const transaction = JSON.parse(serializedTransaction);
-
     try {
-      if (this.boxTimingState.state !== BoxState.Active) {
-        throw new Error('Invalid box state!');
-      }
       const placeBidIx = Transaction.from(transaction.data).instructions.filter(
         (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
       );
@@ -310,9 +328,11 @@ export class BoxConfigWorker {
       }
       await this.getBox();
       const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
-      if (remainingSeconds < this.secondsExtending) {
+      if (
+        remainingSeconds < this.secondsExtending &&
+        this.boxTimingState.state === BoxState.Active
+      ) {
         this.boxTimingState = {
-          //added 16 secs because of rpc fetch (this way times are ideally synced)
           endsAt:
             this.boxTimingState.endsAt +
             remainingSeconds +
@@ -337,7 +357,6 @@ export class BoxConfigWorker {
 
     try {
       const boxData = await program.account.boxData.fetch(boxAddress);
-
       this.bidder =
         boxData.bidder?.toString() ?? boxData.winnerAddress?.toString();
 
@@ -347,6 +366,7 @@ export class BoxConfigWorker {
         (boxData.bidder && this.boxTimingState.state === BoxState.Cooldown)
       ) {
         this.isWon = true;
+        await this.nftService.updateNft(this.activeNft.nftId, true);
         await this.statsService.increaseSales(
           boxData.activeBid.toNumber() / LAMPORTS_PER_SOL,
         );

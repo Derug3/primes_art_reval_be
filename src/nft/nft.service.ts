@@ -26,21 +26,16 @@ export class NftService {
       if (cdnNfts.error) {
         throw new BadRequestException(cdnNfts.error_message);
       }
-
       const items = cdnNfts.data.result;
-
       this.logger.log(`Got ${items.length} NFTs`);
-
       await this.nftRepository.delete({});
-
       const nfts: Nft[] = await Promise.all(
         items.map(async (item: any) => {
           try {
             const nft = new Nft();
+            nft.nftId = item.nftId;
             nft.nftUri = item.nftUri;
             nft.nftName = item.nftName;
-            nft.isInBox = false;
-            nft.reshuffleCount = 0;
             nft.boxId = item.boxId === '' ? null : item.boxId;
             nft.nftImage = item.imageUri;
             nft.boxPool = fromBoxPoolString(item.box);
@@ -128,20 +123,6 @@ export class NftService {
 
   getMinted() {
     return this.nftRepository.find({ where: { minted: true } });
-  }
-
-  async updateNfts() {
-    const nfts = (await this.nftRepository.find()).map((n) => ({
-      ...n,
-      minted: true,
-    }));
-
-    const rand = Math.round(Math.random() * (nfts.length - 1));
-
-    nfts[rand].minted = false;
-
-    await this.nftRepository.save(nfts);
-    return true;
   }
 
   async getBoxNfts() {

@@ -117,8 +117,10 @@ export class BoxConfigService implements OnModuleInit {
     }
   }
 
-  getActiveBoxes() {
-    return this.workers.map((w) => w.mapToDto());
+  async getActiveBoxes() {
+    const configs = this.workers.map((w) => w.mapToDto());
+
+    return configs;
   }
 
   async deleteBox(boxId: string) {
