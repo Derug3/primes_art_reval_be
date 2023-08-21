@@ -16,6 +16,4 @@ RUN npm ci
 COPY --chown=node:node . .
 RUN npm run build
 
-EXPOSE 3000
-
 CMD ["sh", "-c", "if [ \"$NODE_ENV\" = \"development\" ]; then npm run start:dev; else npm run start:prod; fi"]
