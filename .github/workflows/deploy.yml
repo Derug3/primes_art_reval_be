@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - master
-      - chain-integration
+#      - chain-integration
 
 jobs:
   deploy:
@@ -17,9 +17,9 @@ jobs:
         if: ${{ github.ref == 'refs/heads/master' }}
         run: echo "WORK_DIR=${{ secrets.WORK_DIR_PROD }}" >> $GITHUB_ENV
 
-      - name: Setup stage work dir
-        if: ${{ github.ref == 'refs/heads/chain-integration' }}
-        run: echo "WORK_DIR=${{ secrets.WORK_DIR_STAGE }}" >> $GITHUB_ENV
+#      - name: Setup stage work dir
+#        if: ${{ github.ref == 'refs/heads/chain-integration' }}
+#        run: echo "WORK_DIR=${{ secrets.WORK_DIR_STAGE }}" >> $GITHUB_ENV
 
       - name: Install ssh keys
         run: |
