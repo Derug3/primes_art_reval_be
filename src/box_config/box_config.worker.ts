@@ -12,7 +12,6 @@ import {
 import {
   checkUserRole,
   connection,
-  getProofPda,
   initBoxIx,
   parseAndValidatePlaceBidTx,
   primeBoxSeed,
@@ -36,6 +35,7 @@ import {
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { UserService } from 'src/user/user.service';
 import { StatisticsService } from 'src/statistics/statistics.service';
+import { writeFileSync } from 'fs';
 
 export class BoxConfigWorker {
   box: BoxConfig;
@@ -158,7 +158,6 @@ export class BoxConfigWorker {
   async cooldown() {
     await this.resolveBox();
     if (this.box.cooldownDuration > 0) {
-      this.logger.log('Cooldown started');
       this.boxTimingState = {
         startedAt: dayjs().unix(),
         endsAt: dayjs().add(this.box.cooldownDuration, 'seconds').unix(),
@@ -177,6 +176,7 @@ export class BoxConfigWorker {
       new PublicKey(programId),
     )[0];
   }
+
   async resolveBox() {
     try {
       this.logger.log('Resolved box');
@@ -184,6 +184,7 @@ export class BoxConfigWorker {
       const box = await program.account.boxData.fetch(boxPda);
       let resolved = false;
       let hasTriedResolving = false;
+      await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       if ((box.winnerAddress || box.bidder) && !this.isWon) {
         resolved = await resolveBoxIx(boxPda);
         hasTriedResolving = true;
@@ -191,7 +192,6 @@ export class BoxConfigWorker {
       if (!this.isWon && !this.hasResolved && !resolved) {
         this.logger.warn('Non resolved NFT');
         await this.nftService.updateNft(this.activeNft.nftId, false);
-        await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       } else {
         this.logger.log('Resolved NFT');
         await this.nftService.updateNft(this.activeNft.nftId, true);
@@ -228,12 +228,16 @@ export class BoxConfigWorker {
         this.box.boxPool,
       );
 
-      console.log(nfts);
+      this.logger.log(`Got ${nfts.length} from DB`);
 
       if (this.activeNft) {
         await this.redisService.del(this.activeNft.nftId);
         this.logger.log(`Deleted key from redis`);
       }
+
+      const storedInRedis = await this.redisService.keys('*');
+
+      nfts = nfts.filter((nft) => !storedInRedis.includes(nft.nftId));
 
       if (nfts.length === 0) {
         this.box.boxState = BoxState.Minted;
@@ -250,25 +254,12 @@ export class BoxConfigWorker {
         nfts = nonShuffled;
       }
       let acknowledged = 0;
-      const filteredNfts: Nft[] = [];
-      await Promise.all(
-        nfts.map(async (nft, index) => {
-          const proofPda = getProofPda(nft);
-          const accountInfo = await connection.getAccountInfo(proofPda);
-          if (
-            accountInfo === null &&
-            (await this.redisService.exists(nft.nftId)) === 0
-          ) {
-            filteredNfts.push(nft);
-          }
-        }),
-      );
-      this.logger.log(`Box setup with available NFTs: ${filteredNfts.length}`);
-      if (filteredNfts.length === 0) return false;
-      do {
-        const rand = Math.round(Math.random() * (filteredNfts.length - 1));
-        const randomNft = filteredNfts[rand];
 
+      this.logger.log(`Box setup with available NFTs: ${nfts.length}`);
+      if (nfts.length === 0) return false;
+      do {
+        const rand = Math.round(Math.random() * (nfts.length - 1));
+        const randomNft = nfts[rand];
         acknowledged = await this.redisService.setnx(
           randomNft.nftId,
           JSON.stringify(randomNft),
@@ -296,8 +287,17 @@ export class BoxConfigWorker {
       );
 
       const wallet = placeBidIx[0].keys[1].pubkey.toString();
-
       const relatedUser = await this.userService.getUserByWallet(wallet);
+
+      const action = placeBidIx[0].data[8];
+      if (
+        (action === 2 || action === 3) &&
+        this.box.boxPool !== BoxPool.PreSale
+      ) {
+        throw new BadRequestException(
+          "You can't use pre-sale NFTs out of PreSale pool!",
+        );
+      }
 
       if (!relatedUser && this.box.boxPool !== BoxPool.Public) {
         throw new BadRequestException(

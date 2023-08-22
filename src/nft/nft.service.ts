@@ -16,12 +16,10 @@ export class NftService {
     private readonly nftRepository: NftRepository,
     private readonly configService: ConfigService,
   ) {}
-
   async storeNfts() {
     try {
       const cdnUrl = this.configService.get<string>('NFT_CND_URL');
       this.logger.log(`Started inserting of nfts!`);
-
       const cdnNfts = await (await fetch(cdnUrl, { method: 'GET' })).json();
       if (cdnNfts.error) {
         throw new BadRequestException(cdnNfts.error_message);
