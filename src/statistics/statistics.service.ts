@@ -9,6 +9,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { StatsEntity } from './entity/stats.entity';
 import { StatsRepository } from './repository/stats.repository';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
+import { PoolsConfigRepository } from './repository/pools_config.repository';
+import { BoxPool } from 'src/box_config/types/box_config.types';
 
 @Injectable()
 export class StatisticsService implements OnModuleInit {
@@ -17,12 +19,25 @@ export class StatisticsService implements OnModuleInit {
     @InjectRepository(StatsRepository)
     private readonly statsRepo: StatsRepository,
     private readonly subscriberService: SubscriberService,
+    @InjectRepository(PoolsConfigRepository)
+    private readonly poolConfigRepo: PoolsConfigRepository,
   ) {}
 
   async onModuleInit() {
     try {
       this.logger.log(`Statistics inserting`);
       const stats = await this.statsRepo.findOne({ where: {} });
+
+      const poolsConfig = await this.poolConfigRepo.find();
+
+      if (!poolsConfig || poolsConfig.length === 0) {
+        await this.poolConfigRepo.save([
+          { boxPool: BoxPool.Public, isVisible: true },
+          { boxPool: BoxPool.PreSale, isVisible: true },
+          { boxPool: BoxPool.OG, isVisible: true },
+          { boxPool: BoxPool.PrimeList, isVisible: true },
+        ]);
+      }
 
       if (!stats) {
         const stats: StatsEntity = {
@@ -67,7 +82,6 @@ export class StatisticsService implements OnModuleInit {
       console.log(error);
     }
   }
-
   async updateSecondsExtending(secondsExtending: number) {
     try {
       const stats = await this.statsRepo.findOne({ where: {} });
@@ -89,6 +103,30 @@ export class StatisticsService implements OnModuleInit {
   getStats() {
     try {
       return this.statsRepo.findOne({ where: {} });
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  getPoolsConfig() {
+    return this.poolConfigRepo.find();
+  }
+
+  async updatePoolConfig(boxPool: BoxPool, isVisible: boolean) {
+    try {
+      const relatedPool = await this.poolConfigRepo.findOne({
+        where: { boxPool },
+      });
+      if (!relatedPool) {
+        await this.poolConfigRepo.save({
+          boxPool,
+          isVisible,
+        });
+      } else {
+        relatedPool.isVisible = isVisible;
+        await this.poolConfigRepo.save(relatedPool);
+      }
+      return true;
     } catch (error) {
       throw new BadRequestException(error.message);
     }

@@ -6,6 +6,7 @@ import { Nft } from './nft/entity/nft.entity';
 import { RecoverBox } from './recover_box/entity/recover_box.entity';
 import { User } from './user/entity/user.entity';
 import { StatsEntity } from './statistics/entity/stats.entity';
+import { PoolsConfig } from './statistics/entity/pools_config.entity';
 export const typeormConfig = (): TypeOrmModuleOptions => {
   dotenv.config();
 
@@ -16,7 +17,7 @@ export const typeormConfig = (): TypeOrmModuleOptions => {
     database: process.env.DB_NAME!,
     username: process.env.DB_USERNAME!,
     password: process.env.DB_PASSWORD!,
-    entities: [BoxConfig, Nft, RecoverBox, User, StatsEntity],
+    entities: [BoxConfig, Nft, RecoverBox, User, StatsEntity, PoolsConfig],
     //TODO:only in dev mode!
     // dropSchema: true,
     synchronize: true,

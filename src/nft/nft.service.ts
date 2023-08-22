@@ -28,7 +28,7 @@ export class NftService {
       this.logger.log(`Got ${items.length} NFTs`);
       await this.nftRepository.delete({});
       const nfts: Nft[] = await Promise.all(
-        items.map(async (item: any) => {
+        items.slice(0, 5).map(async (item: any) => {
           try {
             const nft = new Nft();
             nft.nftId = item.nftId;

@@ -1,5 +1,7 @@
 import { Args, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
+import { BoxPool } from 'src/box_config/types/box_config.types';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
+import { PoolsConfig } from './entity/pools_config.entity';
 import { StatsEntity } from './entity/stats.entity';
 import { StatisticsService } from './statistics.service';
 
@@ -23,5 +25,18 @@ export class StatisticsResolver {
   @Subscription(() => StatsEntity)
   getLiveStats() {
     return this.subscriberService.pubSub.asyncIterator('getLiveStats');
+  }
+
+  @Mutation(() => Boolean)
+  updatePoolConfig(
+    @Args('pool', { type: () => BoxPool }) pool: BoxPool,
+    @Args('isVisible') isVisible: boolean,
+  ) {
+    return this.statisticsService.updatePoolConfig(pool, isVisible);
+  }
+
+  @Query(() => [PoolsConfig])
+  getPoolsConfig() {
+    return this.statisticsService.getPoolsConfig();
   }
 }
