@@ -27,7 +27,7 @@ export class NftService {
       const items = cdnNfts.data.result;
       this.logger.log(`Got ${items.length} NFTs`);
       const nfts: Nft[] = await Promise.all(
-        items.slice(0, 5).map(async (item: any, index: number) => {
+        items.map(async (item: any, index: number) => {
           try {
             const nft = new Nft();
             nft.nftId = item.nftId;
