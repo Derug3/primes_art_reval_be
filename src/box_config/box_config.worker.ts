@@ -328,10 +328,7 @@ export class BoxConfigWorker {
       }
       await this.getBox();
       const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
-      if (
-        remainingSeconds < this.secondsExtending &&
-        this.boxTimingState.state === BoxState.Active
-      ) {
+      if (remainingSeconds < this.secondsExtending) {
         this.boxTimingState = {
           endsAt:
             this.boxTimingState.endsAt +
