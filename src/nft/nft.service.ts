@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan } from 'typeorm';
+import { IsNull, MoreThan } from 'typeorm';
 import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 import { chunk } from 'lodash';
@@ -26,18 +26,18 @@ export class NftService {
       }
       const items = cdnNfts.data.result;
       this.logger.log(`Got ${items.length} NFTs`);
-      await this.nftRepository.delete({});
       const nfts: Nft[] = await Promise.all(
-        items.slice(0, 5).map(async (item: any) => {
+        items.slice(0, 5).map(async (item: any, index: number) => {
           try {
             const nft = new Nft();
             nft.nftId = item.nftId;
             nft.nftUri = item.nftUri;
             nft.nftName = item.nftName;
+
+            //TODO:return
             nft.boxId = item.boxId === '' ? null : item.boxId;
             nft.nftImage = item.imageUri;
             nft.boxPool = fromBoxPoolString(item.box);
-
             return nft;
           } catch (error) {
             console.log(error);
@@ -69,11 +69,12 @@ export class NftService {
     });
 
     if (!boxNfts || boxNfts.length === 0) {
-      return this.nftRepository.find({
-        where: { minted: false, isInBox: false, boxPool: null },
+      const publicNfts = await this.nftRepository.find({
+        where: { minted: false, isInBox: false, boxPool: IsNull() },
       });
+      return publicNfts;
     } else {
-      const boxIdNfts = boxNfts.filter((nft) => nft.boxId === boxId);
+      const boxIdNfts = boxNfts.filter((nft) => nft.boxId == boxId);
       if (boxIdNfts.length > 0) {
         return boxIdNfts;
       } else {
@@ -81,7 +82,6 @@ export class NftService {
       }
     }
   }
-
   async updateNft(nftId: string, hasMinted: boolean) {
     try {
       const nft = await this.nftRepository.findOne({ where: { nftId } });
