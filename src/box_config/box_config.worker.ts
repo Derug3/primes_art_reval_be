@@ -352,6 +352,15 @@ export class BoxConfigWorker {
         this.boxTimingState.state === BoxState.Cooldown &&
         remainingSeconds < 5
       ) {
+        this.boxTimingState = {
+          endsAt:
+            this.boxTimingState.endsAt +
+            remainingSeconds +
+            this.cooldownAdditionalTimeout +
+            1,
+          startedAt: dayjs().unix(),
+          state: BoxState.Cooldown,
+        };
         this.cooldownAdditionalTimeout = 5;
       }
 
