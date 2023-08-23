@@ -157,10 +157,6 @@ export class BoxConfigWorker {
     await this.cooldown();
   }
   async cooldown() {
-    if (this.cooldownAdditionalTimeout > 0) {
-      await sleep(this.cooldownAdditionalTimeout * 1000);
-      this.cooldownAdditionalTimeout = 0;
-    }
     await this.resolveBox();
     if (this.box.cooldownDuration > 0) {
       this.boxTimingState = {
@@ -171,6 +167,10 @@ export class BoxConfigWorker {
       await this.getBox();
 
       await sleep(this.box.cooldownDuration * 1000);
+    }
+    if (this.cooldownAdditionalTimeout > 0) {
+      await sleep(this.cooldownAdditionalTimeout * 1000);
+      this.cooldownAdditionalTimeout = 0;
     }
     await this.start();
   }
