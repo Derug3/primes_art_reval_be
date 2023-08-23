@@ -11,6 +11,8 @@ import {
 } from './types/box_config.types';
 import {
   checkUserRole,
+  connection,
+  getProofPda,
   initBoxIx,
   parseAndValidatePlaceBidTx,
   primeBoxSeed,
@@ -290,6 +292,14 @@ export class BoxConfigWorker {
       const placeBidIx = Transaction.from(transaction.data).instructions.filter(
         (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
       );
+
+      const proofPda = getProofPda(this.activeNft);
+
+      const pdaInfo = await connection.getAccountInfo(proofPda);
+
+      if (pdaInfo || pdaInfo?.data) {
+        throw new BadRequestException('This NFT is already minted.');
+      }
 
       const wallet = placeBidIx[0].keys[1].pubkey.toString();
       const relatedUser = await this.userService.getUserByWallet(wallet);

@@ -33,7 +33,6 @@ export class NftService {
             nft.nftId = item.nftId;
             nft.nftUri = item.nftUri;
             nft.nftName = item.nftName;
-
             //TODO:return
             nft.boxId = item.boxId === '' ? null : item.boxId;
             nft.nftImage = item.imageUri;
