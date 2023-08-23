@@ -11,7 +11,6 @@ import {
 } from './types/box_config.types';
 import {
   checkUserRole,
-  connection,
   initBoxIx,
   parseAndValidatePlaceBidTx,
   primeBoxSeed,
@@ -53,6 +52,7 @@ export class BoxConfigWorker {
   logger = new Logger(BoxConfigWorker.name);
 
   additionalTimeout: number;
+  cooldownAdditionalTimeout: number;
 
   constructor(
     private readonly subscriberService: SubscriberService,
@@ -72,7 +72,7 @@ export class BoxConfigWorker {
     this.hasResolved = false;
     this.additionalTimeout = 0;
     this.secondsExtending = 15;
-
+    this.cooldownAdditionalTimeout = 5;
     this.start();
   }
 
@@ -85,6 +85,7 @@ export class BoxConfigWorker {
     this.hasResolved = false;
     this.bidders = [];
     this.additionalTimeout = 0;
+    this.cooldownAdditionalTimeout = 0;
 
     if (this.box.initialDelay) {
       this.boxTimingState = {
@@ -156,6 +157,10 @@ export class BoxConfigWorker {
     await this.cooldown();
   }
   async cooldown() {
+    if (this.cooldownAdditionalTimeout > 0) {
+      await sleep(this.cooldownAdditionalTimeout * 1000);
+      this.cooldownAdditionalTimeout = 0;
+    }
     await this.resolveBox();
     if (this.box.cooldownDuration > 0) {
       this.boxTimingState = {
@@ -342,6 +347,12 @@ export class BoxConfigWorker {
           state: BoxState.Active,
         };
         this.additionalTimeout = remainingSeconds + this.secondsExtending;
+      }
+      if (
+        this.boxTimingState.state === BoxState.Cooldown &&
+        remainingSeconds < 5
+      ) {
+        this.cooldownAdditionalTimeout = 5;
       }
 
       await this.getBox();
