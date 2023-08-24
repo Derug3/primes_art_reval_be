@@ -35,6 +35,8 @@ const authority = process.env.AUTHORITY!;
 
 export const rolesEndpoint = process.env.ROLES_API_ENDPOINT!;
 
+const webhookUrl = process.env.WEBHOOK_URL!;
+
 const treasury = process.env.TREASURY!;
 
 export const getAuthorityAsSigner = () => {
@@ -147,6 +149,10 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
     tx.sign(authority);
     const txSig = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(txSig);
+    emitToWebhook({
+      message: 'Resolved box',
+      boxPda: boxAddress.toString(),
+    });
     return true;
   } catch (error) {
     console.log(error);
@@ -224,6 +230,12 @@ export const initBoxIx = async (
 
     const txSig = await connection.sendRawTransaction(tx.serialize());
 
+    emitToWebhook({
+      message: 'Initialized box',
+      box,
+      nft: nft,
+    });
+
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
@@ -247,6 +259,16 @@ export const claimNft = async (tx: any) => {
 
     const txSig = await connection.sendRawTransaction(transaction.serialize());
     await connection.confirmTransaction(txSig);
+    const nonComputeBudgetIxs = transaction.instructions.filter(
+      (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
+    )[0];
+    console.log(nonComputeBudgetIxs);
+
+    emitToWebhook({
+      message: 'Nft claimed',
+      nftMint: nonComputeBudgetIxs.keys[2].pubkey,
+      winner: nonComputeBudgetIxs.keys[0].pubkey,
+    });
     return true;
   } catch (error) {
     console.log(error);
@@ -316,4 +338,14 @@ export const getProofPda = (nft: Nft) => {
   );
 
   return proofPda;
+};
+
+export const emitToWebhook = (data: any) => {
+  try {
+    console.log('Webhook emit');
+
+    fetch(webhookUrl, { method: 'POST', body: JSON.stringify(data) });
+  } catch (error) {
+    console.log('Webhook emit error:', error.message);
+  }
 };

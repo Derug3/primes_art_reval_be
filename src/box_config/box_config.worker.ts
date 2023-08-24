@@ -12,6 +12,7 @@ import {
 import {
   checkUserRole,
   connection,
+  emitToWebhook,
   getProofPda,
   initBoxIx,
   parseAndValidatePlaceBidTx,
@@ -254,6 +255,7 @@ export class BoxConfigWorker {
           state: BoxState.Minted,
         };
         await this.boxConfigRepo.save(this.box);
+
         return false;
       }
       const nonShuffled = nfts.filter((n) => n.reshuffleCount === 0);
@@ -275,6 +277,7 @@ export class BoxConfigWorker {
         this.activeNft = randomNft;
       } while (acknowledged === 0);
       await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
+
       return true;
     } catch (error) {
       console.log(error);
@@ -282,6 +285,7 @@ export class BoxConfigWorker {
     }
   }
   async publishBox() {
+    emitToWebhook(this.mapToDto());
     await this.subscriberService.pubSub.publish('boxConfig', {
       boxConfig: this.mapToDto(),
     });
@@ -292,7 +296,6 @@ export class BoxConfigWorker {
       const placeBidIx = Transaction.from(transaction.data).instructions.filter(
         (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
       );
-
       const proofPda = getProofPda(this.activeNft);
 
       const pdaInfo = await connection.getAccountInfo(proofPda);
@@ -337,7 +340,8 @@ export class BoxConfigWorker {
       }
 
       this.bidsCount++;
-      await this.getBox();
+      //TODO:comm check
+      // await this.getBox();
       const existingAuth = await parseAndValidatePlaceBidTx(
         transaction,
         this.bidders,
@@ -350,7 +354,9 @@ export class BoxConfigWorker {
           overbidden: existingAuth,
         });
       }
-      await this.getBox();
+      //TODO:comm check
+
+      // await this.getBox();
       const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
       if (
         remainingSeconds < this.secondsExtending &&

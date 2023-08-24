@@ -14,7 +14,7 @@ import { BoxConfigInput, BoxState } from './types/box_config.types';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
 import { NftService } from 'src/nft/nft.service';
-import { claimNft } from './utilities/helpers';
+import { claimNft, emitToWebhook } from './utilities/helpers';
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { BoxType } from 'src/enum/enums';
 import { UserService } from 'src/user/user.service';
@@ -145,7 +145,6 @@ export class BoxConfigService implements OnModuleInit {
     const box = this.workers.find((b) => b.box.boxId.toString() === boxId);
 
     if (!box) throw new NotFoundException('Given box not found!');
-
     return box.placeBid(serializedTx);
   }
 
@@ -159,6 +158,8 @@ export class BoxConfigService implements OnModuleInit {
 
   async deleteAllBoxes() {
     await this.boxConfigRepo.delete({});
+    emitToWebhook({ message: 'All boxes deleted' });
+
     this.workers = [];
     return true;
   }
