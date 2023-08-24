@@ -51,6 +51,7 @@ export type ArtReveal = {
           name: 'winner';
           isMut: true;
           isSigner: true;
+          docs: ['CHECK'];
         },
         {
           name: 'payer';
@@ -78,29 +79,40 @@ export type ArtReveal = {
           isSigner: false;
         },
         {
+          name: 'royaltyWallet';
+          isMut: false;
+          isSigner: false;
+          docs: ['CHECK'];
+        },
+        {
           name: 'metadataAccount';
           isMut: true;
           isSigner: false;
+          docs: ['CHECK'];
         },
         {
           name: 'masterEdition';
           isMut: true;
           isSigner: false;
+          docs: ['CHECK'];
         },
         {
           name: 'collectionMasterEdition';
           isMut: true;
           isSigner: false;
+          docs: ['CHECK'];
         },
         {
           name: 'collectionMetadata';
           isMut: true;
           isSigner: false;
+          docs: ['CHECK'];
         },
         {
           name: 'tokenRecord';
           isMut: true;
           isSigner: false;
+          docs: ['CHECK'];
         },
         {
           name: 'systemProgram';
@@ -111,6 +123,7 @@ export type ArtReveal = {
           name: 'instructionsSysvar';
           isMut: false;
           isSigner: false;
+          docs: ['CHECK'];
         },
         {
           name: 'tokenProgram';
@@ -121,21 +134,25 @@ export type ArtReveal = {
           name: 'associatedTokenProgam';
           isMut: false;
           isSigner: false;
+          docs: ['CHECK'];
         },
         {
           name: 'metadataProgram';
           isMut: false;
           isSigner: false;
+          docs: ['CHECK'];
         },
         {
           name: 'authorizationRulesProgram';
           isMut: false;
           isSigner: false;
+          docs: ['CHECK'];
         },
         {
           name: 'metaplexFoundationRuleset';
           isMut: false;
           isSigner: false;
+          docs: ['CHECK'];
         },
       ];
       args: [];
@@ -254,6 +271,17 @@ export type ArtReveal = {
           };
         },
       ];
+    },
+    {
+      name: 'closeWinningDatas';
+      accounts: [
+        {
+          name: 'payer';
+          isMut: false;
+          isSigner: true;
+        },
+      ];
+      args: [];
     },
   ];
   accounts: [
@@ -418,6 +446,10 @@ export type ArtReveal = {
             type: {
               defined: 'BoxPool';
             };
+          },
+          {
+            name: 'isMined';
+            type: 'bool';
           },
         ];
       };
@@ -670,6 +702,7 @@ export const IDL: ArtReveal = {
           name: 'winner',
           isMut: true,
           isSigner: true,
+          docs: ['CHECK'],
         },
         {
           name: 'payer',
@@ -697,29 +730,40 @@ export const IDL: ArtReveal = {
           isSigner: false,
         },
         {
+          name: 'royaltyWallet',
+          isMut: false,
+          isSigner: false,
+          docs: ['CHECK'],
+        },
+        {
           name: 'metadataAccount',
           isMut: true,
           isSigner: false,
+          docs: ['CHECK'],
         },
         {
           name: 'masterEdition',
           isMut: true,
           isSigner: false,
+          docs: ['CHECK'],
         },
         {
           name: 'collectionMasterEdition',
           isMut: true,
           isSigner: false,
+          docs: ['CHECK'],
         },
         {
           name: 'collectionMetadata',
           isMut: true,
           isSigner: false,
+          docs: ['CHECK'],
         },
         {
           name: 'tokenRecord',
           isMut: true,
           isSigner: false,
+          docs: ['CHECK'],
         },
         {
           name: 'systemProgram',
@@ -730,6 +774,7 @@ export const IDL: ArtReveal = {
           name: 'instructionsSysvar',
           isMut: false,
           isSigner: false,
+          docs: ['CHECK'],
         },
         {
           name: 'tokenProgram',
@@ -740,21 +785,25 @@ export const IDL: ArtReveal = {
           name: 'associatedTokenProgam',
           isMut: false,
           isSigner: false,
+          docs: ['CHECK'],
         },
         {
           name: 'metadataProgram',
           isMut: false,
           isSigner: false,
+          docs: ['CHECK'],
         },
         {
           name: 'authorizationRulesProgram',
           isMut: false,
           isSigner: false,
+          docs: ['CHECK'],
         },
         {
           name: 'metaplexFoundationRuleset',
           isMut: false,
           isSigner: false,
+          docs: ['CHECK'],
         },
       ],
       args: [],
@@ -873,6 +922,17 @@ export const IDL: ArtReveal = {
           },
         },
       ],
+    },
+    {
+      name: 'closeWinningDatas',
+      accounts: [
+        {
+          name: 'payer',
+          isMut: false,
+          isSigner: true,
+        },
+      ],
+      args: [],
     },
   ],
   accounts: [
@@ -1037,6 +1097,10 @@ export const IDL: ArtReveal = {
             type: {
               defined: 'BoxPool',
             },
+          },
+          {
+            name: 'isMined',
+            type: 'bool',
           },
         ],
       },

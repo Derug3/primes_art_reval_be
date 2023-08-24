@@ -195,7 +195,7 @@ export const initBoxIx = async (
     const authority = getAuthorityAsSigner();
 
     const ix = await program.methods
-      .initBox(boxId.split('-')[0], {
+      .initBox(boxId.toString(), {
         bidIncrease: new BN(box.bidIncrease * LAMPORTS_PER_SOL),
         bidStartPrice: new BN(box.bidStartPrice * LAMPORTS_PER_SOL),
         buyNowPrice: box.buyNowPrice

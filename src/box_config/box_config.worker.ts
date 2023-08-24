@@ -179,7 +179,7 @@ export class BoxConfigWorker {
 
   getBoxPda() {
     return PublicKey.findProgramAddressSync(
-      [primeBoxSeed, Buffer.from(this.box.boxId.split('-')[0])],
+      [primeBoxSeed, Buffer.from(this.box.boxId.toString())],
       new PublicKey(programId),
     )[0];
   }
