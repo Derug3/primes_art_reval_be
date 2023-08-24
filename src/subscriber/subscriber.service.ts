@@ -8,6 +8,8 @@ export class SubscriberService implements OnModuleInit {
   pubSub: PubSub;
   constructor(@InjectRedis() private readonly redisService: Redis) {
     this.pubSub = new PubSub();
+    //@ts-ignore
+    this.pubSub.ee.setMaxListeners(1500);
   }
   async onModuleInit() {
     this.redisService.set('liveUsersCount', 0);

@@ -39,6 +39,7 @@ import { StatisticsModule } from './statistics/statistics.module';
           subscriptions: {
             'graphql-ws': {
               onConnect: () => {
+                console.log('Connected');
                 subscriberService.setConnected();
               },
               onDisconnect: () => {
