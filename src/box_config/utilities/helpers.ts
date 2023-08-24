@@ -105,6 +105,12 @@ export const parseAndValidatePlaceBidTx = async (
       walletAddress: bidder.toString(),
       username: user?.discordUsername ?? bidder.slice(0, 6) + '...',
     });
+    emitToWebhook({
+      message: 'Placed bid',
+      bidder: user.discordUsername ?? bidder.toString(),
+      nftUri: box.nftUri,
+      nftId: box.nftId,
+    });
     return existingBidProofAuthority;
   } catch (error) {
     console.log(error);
@@ -149,10 +155,7 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
     tx.sign(authority);
     const txSig = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(txSig);
-    emitToWebhook({
-      message: 'Resolved box',
-      boxPda: boxAddress.toString(),
-    });
+
     return true;
   } catch (error) {
     console.log(error);
@@ -229,12 +232,6 @@ export const initBoxIx = async (
     tx.sign(authority);
 
     const txSig = await connection.sendRawTransaction(tx.serialize());
-
-    emitToWebhook({
-      message: 'Initialized box',
-      box,
-      nft: nft,
-    });
 
     await connection.confirmTransaction(txSig);
     return true;

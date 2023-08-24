@@ -12,7 +12,6 @@ import {
 import {
   checkUserRole,
   connection,
-  emitToWebhook,
   getProofPda,
   initBoxIx,
   parseAndValidatePlaceBidTx,
@@ -285,7 +284,6 @@ export class BoxConfigWorker {
     }
   }
   async publishBox() {
-    emitToWebhook(this.mapToDto());
     await this.subscriberService.pubSub.publish('boxConfig', {
       boxConfig: this.mapToDto(),
     });
