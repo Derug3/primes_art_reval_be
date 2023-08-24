@@ -155,7 +155,12 @@ export type ArtReveal = {
           docs: ['CHECK'];
         },
       ];
-      args: [];
+      args: [
+        {
+          name: 'nftName';
+          type: 'string';
+        },
+      ];
     },
     {
       name: 'initBox';
@@ -448,7 +453,7 @@ export type ArtReveal = {
             };
           },
           {
-            name: 'isMined';
+            name: 'isMinted';
             type: 'bool';
           },
         ];
@@ -806,7 +811,12 @@ export const IDL: ArtReveal = {
           docs: ['CHECK'],
         },
       ],
-      args: [],
+      args: [
+        {
+          name: 'nftName',
+          type: 'string',
+        },
+      ],
     },
     {
       name: 'initBox',
@@ -1099,7 +1109,7 @@ export const IDL: ArtReveal = {
             },
           },
           {
-            name: 'isMined',
+            name: 'isMinted',
             type: 'bool',
           },
         ],

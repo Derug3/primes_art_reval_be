@@ -314,6 +314,15 @@ export class BoxConfigWorker {
         );
       }
 
+      if (
+        (action === 0 || action === 2) &&
+        this.boxTimingState.state === BoxState.Cooldown
+      ) {
+        throw new BadRequestException(
+          "Invalid box state. You can't bid during cooldown!",
+        );
+      }
+
       if (!relatedUser && this.box.boxPool !== BoxPool.Public) {
         throw new BadRequestException(
           "Invalid role. You don't have permission to bid on this box!",
