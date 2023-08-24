@@ -339,8 +339,6 @@ export const getProofPda = (nft: Nft) => {
 
 export const emitToWebhook = (data: any) => {
   try {
-    console.log('Webhook emit');
-
     fetch(webhookUrl, { method: 'POST', body: JSON.stringify(data) });
   } catch (error) {
     console.log('Webhook emit error:', error.message);

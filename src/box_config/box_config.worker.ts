@@ -338,8 +338,8 @@ export class BoxConfigWorker {
       }
 
       this.bidsCount++;
-      //TODO:comm check
-      // await this.getBox();
+
+      await this.getBox();
       const existingAuth = await parseAndValidatePlaceBidTx(
         transaction,
         this.bidders,
@@ -352,9 +352,8 @@ export class BoxConfigWorker {
           overbidden: existingAuth,
         });
       }
-      //TODO:comm check
 
-      // await this.getBox();
+      await this.getBox();
       const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
       if (
         remainingSeconds < this.secondsExtending &&
