@@ -21,4 +21,11 @@ export class UserResolver {
 
     return user;
   }
+
+  @Query(() => [User], { nullable: true })
+  async getAllUsers() {
+    const users = await this.userService.getAllUsers();
+
+    return users;
+  }
 }

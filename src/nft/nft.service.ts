@@ -122,6 +122,10 @@ export class NftService {
     return this.nftRepository.find({ where: { minted: true } });
   }
 
+  getAllNfts() {
+    return this.nftRepository.find();
+  }
+
   async getBoxNfts() {
     const boxNfts: BoxNfts[] = [];
     const allNfts = await this.nftRepository.find();

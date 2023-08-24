@@ -31,6 +31,14 @@ export class UserService {
     }
   }
 
+  getAllUsers() {
+    try {
+      return this.userRepo.getAllUsers();
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   mapUsers(roles: any[]): User[] {
     return roles.map((r) => ({
       discordId: r.userDiscordId,

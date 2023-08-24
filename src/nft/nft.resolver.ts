@@ -26,6 +26,11 @@ export class NftResolver {
     return this.nftService.getMinted();
   }
 
+  @Query(() => [Nft])
+  getAllNfts() {
+    return this.nftService.getAllNfts();
+  }
+
   @Query(() => [BoxNfts])
   getBoxNfts() {
     return this.nftService.getBoxNfts();

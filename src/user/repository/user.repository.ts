@@ -22,4 +22,8 @@ export class UserRepository extends Repository<User> {
 
     return qb.getOne();
   }
+
+  getAllUsers() {
+    return this.find();
+  }
 }
