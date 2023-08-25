@@ -123,7 +123,8 @@ export class NftService {
   }
 
   getAllNfts() {
-    return this.nftRepository.find();
+    const allNfts = this.nftRepository.find();
+    return allNfts.then((nfts) => nfts.sort((a, b) => Number(a.nftId) - Number(b.nftId)));
   }
 
   async getBoxNfts() {
