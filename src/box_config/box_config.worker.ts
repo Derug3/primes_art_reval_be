@@ -325,7 +325,12 @@ export class BoxConfigWorker {
         );
       }
 
-      if (!relatedUser && this.box.boxPool !== BoxPool.Public) {
+      if (
+        !relatedUser &&
+        this.box.boxPool !== BoxPool.Public &&
+        action !== 2 &&
+        action !== 3
+      ) {
         throw new BadRequestException(
           "Invalid role. You don't have permission to bid on this box!",
         );
@@ -339,6 +344,8 @@ export class BoxConfigWorker {
       }
 
       this.bidsCount++;
+
+      const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
 
       await this.getBox();
       const existingAuth = await parseAndValidatePlaceBidTx(
@@ -356,7 +363,6 @@ export class BoxConfigWorker {
       }
 
       await this.getBox();
-      const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
       if (
         remainingSeconds < this.secondsExtending &&
         this.boxTimingState.state === BoxState.Active
@@ -371,6 +377,17 @@ export class BoxConfigWorker {
           state: BoxState.Active,
         };
         this.additionalTimeout = remainingSeconds + this.secondsExtending;
+      }
+      if (
+        remainingSeconds < 5 &&
+        this.boxTimingState.state === BoxState.Cooldown
+      ) {
+        this.cooldownAdditionalTimeout = 5;
+        this.boxTimingState = {
+          endsAt: this.boxTimingState.endsAt + remainingSeconds + 6,
+          startedAt: dayjs().unix(),
+          state: BoxState.Cooldown,
+        };
       }
 
       await this.getBox();
