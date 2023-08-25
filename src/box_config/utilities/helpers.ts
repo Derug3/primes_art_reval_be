@@ -110,16 +110,32 @@ export const parseAndValidatePlaceBidTx = async (
       const bidAmount = instructionsWithoutCb[0].data
         .subarray(9, 17)
         .readBigUInt64LE();
-      emitToWebhook({
-        message: 'Placed bid',
-        bidder: user.discordUsername ?? bidder.toString(),
-        nftUri: box.nftUri,
-        nftId: box.nftId,
-        bidders,
-        boxState: boxTimingState.state,
-        secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
-        bidAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
-      });
+      if (
+        instructionsWithoutCb[0].data[8] === 0 ||
+        instructionsWithoutCb[0].data[8] === 2
+      ) {
+        emitToWebhook({
+          message: 'Placed bid',
+          bidder: user.discordUsername ?? bidder.toString(),
+          nftUri: box.nftUri,
+          nftId: box.nftId,
+          bidders,
+          boxState: boxTimingState.state,
+          secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
+          bidAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
+        });
+      } else {
+        emitToWebhook({
+          message: 'Minted',
+          bidder: user.discordUsername ?? bidder.toString(),
+          nftUri: box.nftUri,
+          nftId: box.nftId,
+          bidders,
+          boxState: boxTimingState.state,
+          secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
+          mintAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
+        });
+      }
     } catch (error) {}
     return existingBidProofAuthority;
   } catch (error) {
