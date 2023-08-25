@@ -384,7 +384,7 @@ export class BoxConfigWorker {
       ) {
         this.cooldownAdditionalTimeout = 5;
         this.boxTimingState = {
-          endsAt: this.boxTimingState.endsAt + remainingSeconds + 6,
+          endsAt: this.boxTimingState.endsAt + remainingSeconds + 5,
           startedAt: dayjs().unix(),
           state: BoxState.Cooldown,
         };
