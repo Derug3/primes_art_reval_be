@@ -123,7 +123,7 @@ export class NftService {
   }
 
   getAllNfts() {
-    return this.nftRepository.find();
+    return this.nftRepository.find({ order: { nftId: 'ASC' }});
   }
 
   async getBoxNfts() {
