@@ -159,6 +159,10 @@ export class BoxConfigWorker {
     await this.cooldown();
   }
   async cooldown() {
+    if (this.cooldownAdditionalTimeout > 0) {
+      await sleep(this.cooldownAdditionalTimeout * 1000);
+      this.cooldownAdditionalTimeout = 0;
+    }
     await this.resolveBox();
     if (this.box.cooldownDuration > 0) {
       this.boxTimingState = {
@@ -170,10 +174,7 @@ export class BoxConfigWorker {
 
       await sleep(this.box.cooldownDuration * 1000);
     }
-    if (this.cooldownAdditionalTimeout > 0) {
-      await sleep(this.cooldownAdditionalTimeout * 1000);
-      this.cooldownAdditionalTimeout = 0;
-    }
+
     await this.start();
   }
 
@@ -331,23 +332,13 @@ export class BoxConfigWorker {
       }
 
       const permittedPool = checkUserRole(relatedUser);
-      if (permittedPool > this.box.boxPool && action !== 1 && action !== 3) {
+      if (permittedPool > this.box.boxPool && action !== 2 && action !== 3) {
         throw new BadRequestException(
           "Invalid role. You don't have permission to bid on this box!",
         );
       }
 
       this.bidsCount++;
-      const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
-
-      if (
-        this.boxTimingState.state === BoxState.Cooldown &&
-        remainingSeconds < 2
-      ) {
-        throw new BadRequestException(
-          'NFT minting not possible. Time has elapsed!',
-        );
-      }
 
       await this.getBox();
       const existingAuth = await parseAndValidatePlaceBidTx(
@@ -365,6 +356,7 @@ export class BoxConfigWorker {
       }
 
       await this.getBox();
+      const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
       if (
         remainingSeconds < this.secondsExtending &&
         this.boxTimingState.state === BoxState.Active
