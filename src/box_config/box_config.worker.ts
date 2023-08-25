@@ -171,7 +171,7 @@ export class BoxConfigWorker {
       await sleep(this.box.cooldownDuration * 1000);
     }
     if (this.cooldownAdditionalTimeout > 0) {
-      await sleep(this.cooldownAdditionalTimeout * 1000);
+      await sleep((this.cooldownAdditionalTimeout + 1) * 1000);
       this.cooldownAdditionalTimeout = 0;
     }
 
