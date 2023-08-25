@@ -17,7 +17,7 @@ import { decode } from 'bs58';
 import { BoxConfig } from '../entity/box_config.entity';
 import { Nft } from 'src/nft/entity/nft.entity';
 import { BoxType } from 'src/enum/enums';
-import { Bidders, BoxPool } from '../types/box_config.types';
+import { Bidders, BoxPool, BoxTimigState } from '../types/box_config.types';
 import { BadRequestException } from '@nestjs/common';
 import { User } from 'src/user/entity/user.entity';
 import { roles } from './rolesData';
@@ -66,6 +66,7 @@ export const parseAndValidatePlaceBidTx = async (
   bidders: Bidders[],
   hasResolved: boolean,
   user: User | null,
+  boxTimingState: BoxTimigState,
 ): Promise<string | null> => {
   try {
     const transaction = Transaction.from(tx.data);
@@ -105,12 +106,21 @@ export const parseAndValidatePlaceBidTx = async (
       walletAddress: bidder.toString(),
       username: user?.discordUsername ?? bidder.slice(0, 6) + '...',
     });
-    emitToWebhook({
-      message: 'Placed bid',
-      bidder: user.discordUsername ?? bidder.toString(),
-      nftUri: box.nftUri,
-      nftId: box.nftId,
-    });
+    try {
+      const bidAmount = instructionsWithoutCb[0].data
+        .subarray(9, 17)
+        .readBigUInt64LE();
+      emitToWebhook({
+        message: 'Placed bid',
+        bidder: user.discordUsername ?? bidder.toString(),
+        nftUri: box.nftUri,
+        nftId: box.nftId,
+        bidders,
+        boxState: boxTimingState.state,
+        secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
+        bidAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
+      });
+    } catch (error) {}
     return existingBidProofAuthority;
   } catch (error) {
     console.log(error);

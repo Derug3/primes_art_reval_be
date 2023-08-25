@@ -345,6 +345,7 @@ export class BoxConfigWorker {
         this.bidders,
         this.hasResolved,
         relatedUser,
+        this.boxTimingState,
       );
 
       if (existingAuth) {
