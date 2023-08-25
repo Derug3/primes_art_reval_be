@@ -331,13 +331,23 @@ export class BoxConfigWorker {
       }
 
       const permittedPool = checkUserRole(relatedUser);
-      if (permittedPool > this.box.boxPool) {
+      if (permittedPool > this.box.boxPool && action !== 1 && action !== 3) {
         throw new BadRequestException(
           "Invalid role. You don't have permission to bid on this box!",
         );
       }
 
       this.bidsCount++;
+      const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
+
+      if (
+        this.boxTimingState.state === BoxState.Cooldown &&
+        remainingSeconds < 2
+      ) {
+        throw new BadRequestException(
+          'NFT minting not possible. Time has elapsed!',
+        );
+      }
 
       await this.getBox();
       const existingAuth = await parseAndValidatePlaceBidTx(
@@ -355,7 +365,6 @@ export class BoxConfigWorker {
       }
 
       await this.getBox();
-      const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
       if (
         remainingSeconds < this.secondsExtending &&
         this.boxTimingState.state === BoxState.Active
@@ -370,21 +379,6 @@ export class BoxConfigWorker {
           state: BoxState.Active,
         };
         this.additionalTimeout = remainingSeconds + this.secondsExtending;
-      }
-      if (
-        this.boxTimingState.state === BoxState.Cooldown &&
-        remainingSeconds < 5
-      ) {
-        this.boxTimingState = {
-          endsAt:
-            this.boxTimingState.endsAt +
-            remainingSeconds +
-            this.cooldownAdditionalTimeout +
-            1,
-          startedAt: dayjs().unix(),
-          state: BoxState.Cooldown,
-        };
-        this.cooldownAdditionalTimeout = 5;
       }
 
       await this.getBox();
