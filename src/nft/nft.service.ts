@@ -77,7 +77,9 @@ export class NftService {
       if (boxIdNfts.length > 0) {
         return boxIdNfts;
       } else {
-        return boxNfts;
+        return boxNfts.filter(
+          (bNnft) => bNnft.boxId === null || bNnft.boxId === undefined,
+        );
       }
     }
   }
@@ -124,7 +126,9 @@ export class NftService {
 
   getAllNfts() {
     const allNfts = this.nftRepository.find();
-    return allNfts.then((nfts) => nfts.sort((a, b) => Number(a.nftId) - Number(b.nftId)));
+    return allNfts.then((nfts) =>
+      nfts.sort((a, b) => Number(a.nftId) - Number(b.nftId)),
+    );
   }
 
   async getBoxNfts() {
