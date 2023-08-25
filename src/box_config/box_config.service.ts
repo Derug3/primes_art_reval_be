@@ -131,6 +131,9 @@ export class BoxConfigService implements OnModuleInit {
       const boxIndex = this.workers.findIndex(
         (box) => box.box.boxId.toString() === boxId,
       );
+      if (boxIndex < 0) {
+        throw new BadRequestException('Box not found!');
+      }
       this.workers[boxIndex].box.boxState = BoxState.Removed;
       this.workers.splice(boxIndex, 1);
       const existingBox = await this.boxConfigRepo.findOne({
