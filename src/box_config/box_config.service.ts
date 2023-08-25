@@ -64,8 +64,6 @@ export class BoxConfigService implements OnModuleInit {
   }
 
   async saveOrUpdateBoxHandler(box: BoxConfigInput) {
-    const saved = await this.saveOrUpdateBox.execute(box);
-    this.logger.debug(`Staring box worker with id:${saved.boxId}`);
     if (
       (box.boxType === BoxType.BidBuyNow || box.boxType === BoxType.BuyNow) &&
       (box.buyNowPrice <= 0 || !box.buyNowPrice)
@@ -98,6 +96,8 @@ export class BoxConfigService implements OnModuleInit {
         "Can't define bid  price on box that has buy now type type!",
       );
     }
+    const saved = await this.saveOrUpdateBox.execute(box);
+    this.logger.debug(`Staring box worker with id:${saved.boxId}`);
     if (!box.boxId) {
       const newWorker = new BoxConfigWorker(
         this.subscriptionService,
