@@ -128,7 +128,9 @@ export class BoxConfigService implements OnModuleInit {
 
   async deleteBox(boxId: string) {
     try {
-      const boxIndex = this.workers.findIndex((box) => box.box.boxId === boxId);
+      const boxIndex = this.workers.findIndex(
+        (box) => box.box.boxId.toString() === boxId,
+      );
       this.workers[boxIndex].box.boxState = BoxState.Removed;
       this.workers.splice(boxIndex, 1);
       const existingBox = await this.boxConfigRepo.findOne({
