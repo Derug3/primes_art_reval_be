@@ -68,7 +68,7 @@ export class BoxConfigService implements OnModuleInit {
     this.logger.debug(`Staring box worker with id:${saved.boxId}`);
     if (
       (box.boxType === BoxType.BidBuyNow || box.boxType === BoxType.BuyNow) &&
-      !box.buyNowPrice
+      (box.buyNowPrice <= 0 || !box.buyNowPrice)
     ) {
       throw new BadRequestException(
         "Can't create box of type BidBuy and Buy without buy now price defined!",
@@ -76,23 +76,26 @@ export class BoxConfigService implements OnModuleInit {
     }
     if (
       (box.boxType === BoxType.Bid || box.boxType === BoxType.BidBuyNow) &&
-      !box.bidStartPrice
+      (!box.bidStartPrice ||
+        box.bidStartPrice <= 0 ||
+        !box.bidIncrease ||
+        box.bidIncrease <= 0)
     ) {
       throw new BadRequestException(
         "Can't create box of type BidBuy and Bid without bid start price defined!",
       );
     }
-    if (box.boxType === BoxType.Bid && box.buyNowPrice > 0) {
+    if (box.boxType === BoxType.Bid && box.buyNowPrice >= 0) {
       throw new BadRequestException(
         "Can't define buy now price on box that has bid type!",
       );
     }
     if (
       box.boxType === BoxType.BuyNow &&
-      (box.bidStartPrice > 0 || box.bidIncrease > 0)
+      (box.bidStartPrice >= 0 || box.bidIncrease >= 0)
     ) {
       throw new BadRequestException(
-        "Can't define bid  price on box that has buy now tyoe type!",
+        "Can't define bid  price on box that has buy now type type!",
       );
     }
     if (!box.boxId) {
