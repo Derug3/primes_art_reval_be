@@ -13,8 +13,16 @@ export class StatisticsResolver {
   ) {}
 
   @Mutation(() => Boolean)
-  updateSecondsExtending(@Args('secondsCount') secondsCount: number) {
-    return this.statisticsService.updateSecondsExtending(secondsCount);
+  updateSecondsExtending(
+    @Args('secondsCount') secondsCount: number,
+    @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
+  ) {
+    return this.statisticsService.updateSecondsExtending(
+      secondsCount,
+      signedMessage,
+      authority,
+    );
   }
 
   @Query(() => StatsEntity)
@@ -31,8 +39,15 @@ export class StatisticsResolver {
   updatePoolConfig(
     @Args('pool', { type: () => BoxPool }) pool: BoxPool,
     @Args('isVisible') isVisible: boolean,
+    @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
   ) {
-    return this.statisticsService.updatePoolConfig(pool, isVisible);
+    return this.statisticsService.updatePoolConfig(
+      pool,
+      isVisible,
+      signedMessage,
+      authority,
+    );
   }
 
   @Query(() => [PoolsConfig])

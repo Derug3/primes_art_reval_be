@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
   OnModuleInit,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
@@ -14,7 +15,7 @@ import { BoxConfigInput, BoxState } from './types/box_config.types';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
 import { NftService } from 'src/nft/nft.service';
-import { claimNft } from './utilities/helpers';
+import { checkIfMessageIsSigned, claimNft } from './utilities/helpers';
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { BoxType } from 'src/enum/enums';
 import { UserService } from 'src/user/user.service';
@@ -63,7 +64,11 @@ export class BoxConfigService implements OnModuleInit {
     }
   }
 
-  async saveOrUpdateBoxHandler(box: BoxConfigInput) {
+  async saveOrUpdateBoxHandler(
+    box: BoxConfigInput,
+    signedMessage: string,
+    authority: string,
+  ) {
     if (
       (box.boxType === BoxType.BidBuyNow || box.boxType === BoxType.BuyNow) &&
       (box.buyNowPrice <= 0 || !box.buyNowPrice)
@@ -96,6 +101,13 @@ export class BoxConfigService implements OnModuleInit {
         "Can't define bid  price on box that has buy now type type!",
       );
     }
+    //TODO:comment in
+    // const isVerified = checkIfMessageIsSigned(
+    //   signedMessage,
+    //   'Update Primes Mint',
+    //   authority,
+    // );
+    // if(!isVerified) throw new UnauthorizedException()
     const saved = await this.saveOrUpdateBox.execute(box);
     this.logger.debug(`Staring box worker with id:${saved.boxId}`);
     if (!box.boxId) {
@@ -126,7 +138,7 @@ export class BoxConfigService implements OnModuleInit {
     return configs;
   }
 
-  async deleteBox(boxId: string) {
+  async deleteBox(boxId: string, signedMessage: string, authority: string) {
     try {
       const boxIndex = this.workers.findIndex(
         (box) => box.box.boxId.toString() === boxId,
@@ -134,6 +146,13 @@ export class BoxConfigService implements OnModuleInit {
       if (boxIndex < 0) {
         throw new BadRequestException('Box not found!');
       }
+      //TODO:comment in
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
       this.workers[boxIndex].box.boxState = BoxState.Removed;
       this.workers.splice(boxIndex, 1);
       const existingBox = await this.boxConfigRepo.findOne({
@@ -164,7 +183,14 @@ export class BoxConfigService implements OnModuleInit {
     return await claimNft(tx);
   }
 
-  async deleteAllBoxes() {
+  async deleteAllBoxes(signedMessage: string, authority: string) {
+    //TODO:comment in
+    // const isVerified = checkIfMessageIsSigned(
+    //   signedMessage,
+    //   'Update Primes Mint',
+    //   authority,
+    // );
+    // if(!isVerified) throw new UnauthorizedException()
     await this.boxConfigRepo.delete({});
 
     this.workers = [];

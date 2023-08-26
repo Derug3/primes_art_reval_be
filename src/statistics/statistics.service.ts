@@ -82,8 +82,19 @@ export class StatisticsService implements OnModuleInit {
       console.log(error);
     }
   }
-  async updateSecondsExtending(secondsExtending: number) {
+  async updateSecondsExtending(
+    secondsExtending: number,
+    sugbedMessage: string,
+    authority: string,
+  ) {
     try {
+      //TODO:comment in
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
       const stats = await this.statsRepo.findOne({ where: {} });
       stats.secondsExtending = secondsExtending;
       await this.statsRepo.save(stats);
@@ -112,11 +123,23 @@ export class StatisticsService implements OnModuleInit {
     return this.poolConfigRepo.find();
   }
 
-  async updatePoolConfig(boxPool: BoxPool, isVisible: boolean) {
+  async updatePoolConfig(
+    boxPool: BoxPool,
+    isVisible: boolean,
+    signedMessage: string,
+    authority: string,
+  ) {
     try {
       const relatedPool = await this.poolConfigRepo.findOne({
         where: { boxPool },
       });
+      //TODO:comment in
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
       if (!relatedPool) {
         await this.poolConfigRepo.save({
           boxPool,

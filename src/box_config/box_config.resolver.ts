@@ -15,8 +15,13 @@ export class BoxConfigResolver {
   async saveOrUpdateBoxConfig(
     @Args('boxConfig') boxConfig: BoxConfigInput,
     @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
   ) {
-    await this.boxConfigService.saveOrUpdateBoxHandler(boxConfig);
+    await this.boxConfigService.saveOrUpdateBoxHandler(
+      boxConfig,
+      signedMessage,
+      authority,
+    );
     return true;
   }
 
@@ -26,8 +31,12 @@ export class BoxConfigResolver {
   }
 
   @Mutation(() => Boolean)
-  deleteBox(@Args('boxId') boxId: string) {
-    return this.boxConfigService.deleteBox(boxId);
+  deleteBox(
+    @Args('boxId') boxId: string,
+    @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
+  ) {
+    return this.boxConfigService.deleteBox(boxId, signedMessage, authority);
   }
 
   @Mutation(() => Boolean, { nullable: true })
@@ -44,7 +53,10 @@ export class BoxConfigResolver {
   }
 
   @Mutation(() => Boolean)
-  deleteAllBoxes() {
-    return this.boxConfigService.deleteAllBoxes();
+  deleteAllBoxes(
+    @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
+  ) {
+    return this.boxConfigService.deleteAllBoxes(signedMessage, authority);
   }
 }

@@ -16,7 +16,7 @@ export class NftService {
     private readonly nftRepository: NftRepository,
     private readonly configService: ConfigService,
   ) {}
-  async storeNfts() {
+  async storeNfts(signedMessage: string, authority: string) {
     try {
       const cdnUrl = this.configService.get<string>('NFT_CND_URL');
       this.logger.log(`Started inserting of nfts!`);
@@ -24,6 +24,13 @@ export class NftService {
       if (cdnNfts.error) {
         throw new BadRequestException(cdnNfts.error_message);
       }
+      //TODO:comment in
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
       const items = cdnNfts.data.result;
       this.logger.log(`Got ${items.length} NFTs`);
       const nfts: Nft[] = await Promise.all(

@@ -7,8 +7,11 @@ export class NftResolver {
   constructor(private readonly nftService: NftService) {}
 
   @Mutation(() => Boolean)
-  insertNfts(@Args('messgeSignature') messageSignature: string) {
-    return this.nftService.storeNfts();
+  insertNfts(
+    @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
+  ) {
+    return this.nftService.storeNfts(signedMessage, authority);
   }
 
   @Query(() => [Nft])

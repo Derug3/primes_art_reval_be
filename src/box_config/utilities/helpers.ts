@@ -7,8 +7,10 @@ import {
   SystemProgram,
   Transaction,
 } from '@solana/web3.js';
+import * as bs58 from 'bs58';
 import { AnchorProvider, BN, Program, Wallet } from '@project-serum/anchor';
 import { IDL, ArtReveal } from './idl';
+import nacl from 'tweetnacl';
 export const primeBoxSeed = Buffer.from('prime-box');
 export const primeBoxTreasurySeed = Buffer.from('prime-box-treasury');
 export const primeBoxWinnerSeed = Buffer.from('prime-box-winner');
@@ -35,6 +37,8 @@ const authority = process.env.AUTHORITY!;
 
 export const rolesEndpoint = process.env.ROLES_API_ENDPOINT!;
 
+const platformAuths = JSON.parse(process.env.PLATFORM_AUTHORITIES!);
+
 const webhookUrl = process.env.WEBHOOK_URL!;
 
 const treasury = process.env.TREASURY!;
@@ -44,6 +48,7 @@ export const getAuthorityAsSigner = () => {
 
   return decodedAuthority;
 };
+const RPC_CONNECTIONS: string[] = JSON.parse(process.env.RPC_ENDPOINTS!);
 export const connection = new Connection(process.env.SOLANA_RPC_ENDPOINT!, {
   commitment: 'confirmed',
 });
@@ -371,3 +376,29 @@ export const emitToWebhook = (data: any) => {
     console.log('Webhook emit error:', error.message);
   }
 };
+
+export function checkIfMessageIsSigned(
+  signedMessage: string | undefined,
+  message: string,
+  pubKey: string,
+) {
+  if (!signedMessage) return false;
+
+  try {
+    const publicKey = new PublicKey(pubKey);
+
+    const isOwner = nacl.sign.detached.verify(
+      new TextEncoder().encode(message),
+      bs58.decode(signedMessage),
+      publicKey.toBytes(),
+    );
+
+    if (!isOwner) return false;
+    if (!platformAuths.includes(pubKey)) return false;
+    return true;
+  } catch (error) {
+    console.log(error);
+
+    return false;
+  }
+}
