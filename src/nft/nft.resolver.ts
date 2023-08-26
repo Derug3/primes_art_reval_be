@@ -44,6 +44,6 @@ export class NftResolver {
     @Args('signedMessage') signedMessage: string,
     @Args('authority') authority: string,
   ) {
-    return this.nftService.deleteAllNfts();
+    return this.nftService.deleteAllNfts(signedMessage, authority);
   }
 }
