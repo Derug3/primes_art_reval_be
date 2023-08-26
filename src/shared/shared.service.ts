@@ -12,7 +12,7 @@ export class SharedService implements OnModuleInit {
 
   onModuleInit() {
     for (const rpcConnection of RPC_CONNECTIONS) {
-      this.rpcConnections.set(rpcConnection, 0);
+      this.rpcConnections.set(rpcConnection.trim(), 0);
     }
   }
 
@@ -27,6 +27,7 @@ export class SharedService implements OnModuleInit {
     }
 
     this.rpcConnections.set(rpcConnection, usedTimes + 1);
-    return new Connection(rpcConnection);
+
+    return new Connection(rpcConnection, 'confirmed');
   }
 }

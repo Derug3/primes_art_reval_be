@@ -51,9 +51,7 @@ export const getAuthorityAsSigner = () => {
   return decodedAuthority;
 };
 export const RPC_CONNECTIONS: string[] = JSON.parse(process.env.RPC_ENDPOINTS!);
-// export const connection = new Connection(process.env.SOLANA_RPC_ENDPOINT!, {
-//   commitment: 'confirmed',
-// });
+
 export const program = new Program<ArtReveal>(
   IDL,
   programId,
@@ -102,6 +100,7 @@ export const parseAndValidatePlaceBidTx = async (
     const txSig = await connection.sendRawTransaction(
       transaction.serialize({ requireAllSignatures: false }),
     );
+
     await connection.confirmTransaction(txSig);
     if (instructionsWithoutCb.length > 1) {
       hasResolved = true;
@@ -118,6 +117,7 @@ export const parseAndValidatePlaceBidTx = async (
       const bidAmount = instructionsWithoutCb[0].data
         .subarray(9, 17)
         .readBigUInt64LE();
+
       if (
         instructionsWithoutCb[0].data[8] === 0 ||
         instructionsWithoutCb[0].data[8] === 2
@@ -148,6 +148,7 @@ export const parseAndValidatePlaceBidTx = async (
     return existingBidProofAuthority;
   } catch (error) {
     console.log(error);
+
     emitToWebhook({
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,

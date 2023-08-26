@@ -360,13 +360,15 @@ export class BoxConfigWorker {
       const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
 
       await this.getBox();
+      const rpcConnection = this.sharedService.getRpcConnection();
+
       const existingAuth = await parseAndValidatePlaceBidTx(
         transaction,
         this.bidders,
         this.hasResolved,
         relatedUser,
         this.boxTimingState,
-        this.sharedService.getRpcConnection(),
+        rpcConnection,
       );
 
       if (existingAuth) {
