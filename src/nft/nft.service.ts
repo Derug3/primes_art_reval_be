@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThan } from 'typeorm';
 import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
-import { chunk } from 'lodash';
+import { chunk, isNull } from 'lodash';
 import { BoxType } from 'src/enum/enums';
 import { fromBoxPoolString } from 'src/box_config/utilities/helpers';
 import { BoxPool } from 'src/box_config/types/box_config.types';
@@ -82,12 +82,15 @@ export class NftService {
       return publicNfts;
     } else {
       const boxIdNfts = boxNfts.filter((nft) => nft.boxId == boxId);
+
       if (boxIdNfts.length > 0) {
         return boxIdNfts;
       } else {
-        return boxNfts.filter(
-          (bNnft) => bNnft.boxId === null || bNnft.boxId === undefined,
-        );
+        if (boxNfts.length > 0) return boxNfts;
+        else
+          return await this.nftRepository.find({
+            where: { minted: false, isInBox: false },
+          });
       }
     }
   }
