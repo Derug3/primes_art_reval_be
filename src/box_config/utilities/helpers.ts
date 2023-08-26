@@ -324,9 +324,10 @@ export const parseTransactionError = (data: any) => {
 };
 
 export const checkUserRole = (user: User) => {
+  if (!user) return BoxPool.Public;
   const permittedPools =
     user?.userRoles.map(
-      (userRole) => roles.find((r) => r.roleId === userRole.roleId)?.boxPool,
+      (userRole) => roles?.find((r) => r.roleId === userRole.roleId)?.boxPool,
     ) ?? [];
   if (permittedPools.length === 0) {
     return BoxPool.Public;

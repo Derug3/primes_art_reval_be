@@ -33,14 +33,13 @@ export class NftService {
             nft.nftId = item.nftId;
             nft.nftUri = item.nftUri;
             nft.nftName = item.nftName;
-            //TODO:return
-            nft.boxId = item.boxId === '' ? null : item.boxId;
+            nft.boxId =
+              item.boxId === '' || item.boxId === null ? null : item.boxId;
             nft.nftImage = item.imageUri;
             nft.boxPool = fromBoxPoolString(item.box);
             return nft;
           } catch (error) {
             console.log(error);
-
             return null;
           }
         }),

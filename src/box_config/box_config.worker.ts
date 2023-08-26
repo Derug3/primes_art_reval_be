@@ -365,7 +365,8 @@ export class BoxConfigWorker {
       await this.getBox();
       if (
         remainingSeconds < this.secondsExtending &&
-        this.boxTimingState.state === BoxState.Active
+        this.boxTimingState.state === BoxState.Active &&
+        (action === 0 || action === 2)
       ) {
         this.boxTimingState = {
           endsAt:
