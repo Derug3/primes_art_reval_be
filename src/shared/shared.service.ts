@@ -22,9 +22,11 @@ export class SharedService implements OnModuleInit {
     for (const [key, value] of this.rpcConnections) {
       if (value < usedTimes) {
         rpcConnection = key;
+        usedTimes = value;
       }
     }
 
+    this.rpcConnections.set(rpcConnection, usedTimes + 1);
     return new Connection(rpcConnection);
   }
 }
