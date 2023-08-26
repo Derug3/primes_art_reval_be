@@ -35,6 +35,8 @@ export const programId = process.env.PROGRAM_ID!;
 
 const authority = process.env.AUTHORITY!;
 
+const webHookErrorUrl = process.env.WEBHOOK_ERROR_URL!;
+
 export const rolesEndpoint = process.env.ROLES_API_ENDPOINT!;
 
 const platformAuths = JSON.parse(process.env.PLATFORM_AUTHORITIES!);
@@ -48,10 +50,10 @@ export const getAuthorityAsSigner = () => {
 
   return decodedAuthority;
 };
-const RPC_CONNECTIONS: string[] = JSON.parse(process.env.RPC_ENDPOINTS!);
-export const connection = new Connection(process.env.SOLANA_RPC_ENDPOINT!, {
-  commitment: 'confirmed',
-});
+export const RPC_CONNECTIONS: string[] = JSON.parse(process.env.RPC_ENDPOINTS!);
+// export const connection = new Connection(process.env.SOLANA_RPC_ENDPOINT!, {
+//   commitment: 'confirmed',
+// });
 export const program = new Program<ArtReveal>(
   IDL,
   programId,
@@ -72,6 +74,7 @@ export const parseAndValidatePlaceBidTx = async (
   hasResolved: boolean,
   user: User | null,
   boxTimingState: BoxTimigState,
+  connection: Connection,
 ): Promise<string | null> => {
   try {
     const transaction = Transaction.from(tx.data);
@@ -145,12 +148,21 @@ export const parseAndValidatePlaceBidTx = async (
     return existingBidProofAuthority;
   } catch (error) {
     console.log(error);
+    emitToWebhook({
+      eventName: 'rpc-error',
+      rpcUrl: connection.rpcEndpoint,
+      rpcResponse: error.message,
+      event: 'PlaceBid',
+    });
 
     throw new BadRequestException(parseTransactionError(error));
   }
 };
 
-export const resolveBoxIx = async (boxAddress: PublicKey) => {
+export const resolveBoxIx = async (
+  boxAddress: PublicKey,
+  connection: Connection,
+) => {
   const [boxTreasury] = PublicKey.findProgramAddressSync(
     [primeBoxTreasurySeed, boxAddress.toBuffer()],
     program.programId,
@@ -190,6 +202,12 @@ export const resolveBoxIx = async (boxAddress: PublicKey) => {
     return true;
   } catch (error) {
     console.log(error);
+    emitToWebhook({
+      eventName: 'rpc-error',
+      rpcUrl: connection.rpcEndpoint,
+      rpcResponse: error.message,
+      event: 'ResolveBox',
+    });
     return false;
   }
 };
@@ -230,6 +248,7 @@ export const initBoxIx = async (
   boxId: string,
   box: BoxConfig,
   nft: Nft,
+  connection: Connection,
 ) => {
   try {
     const authority = getAuthorityAsSigner();
@@ -267,13 +286,18 @@ export const initBoxIx = async (
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
-    console.log(error);
+    emitToWebhook({
+      eventName: 'rpc-error',
+      rpcUrl: connection.rpcEndpoint,
+      rpcResponse: error.message,
+      event: 'InitBox',
+    });
 
     return false;
   }
 };
 
-export const claimNft = async (tx: any) => {
+export const claimNft = async (tx: any, connection: Connection) => {
   try {
     const transaction = Transaction.from(JSON.parse(tx).data);
 
@@ -299,7 +323,12 @@ export const claimNft = async (tx: any) => {
     });
     return true;
   } catch (error) {
-    console.log(error);
+    emitToWebhook({
+      eventName: 'rpc-error',
+      rpcUrl: connection.rpcEndpoint,
+      rpcResponse: error.message,
+      event: 'ClaimNft',
+    });
 
     throw new BadRequestException(error.message);
   }
@@ -371,7 +400,10 @@ export const getProofPda = (nft: Nft) => {
 
 export const emitToWebhook = (data: any) => {
   try {
-    fetch(webhookUrl, { method: 'POST', body: JSON.stringify(data) });
+    fetch(data.eventName ? webHookErrorUrl : webhookUrl, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   } catch (error) {
     console.log('Webhook emit error:', error.message);
   }

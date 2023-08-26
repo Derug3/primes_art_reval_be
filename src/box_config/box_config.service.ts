@@ -20,6 +20,7 @@ import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { BoxType } from 'src/enum/enums';
 import { UserService } from 'src/user/user.service';
 import { StatisticsService } from 'src/statistics/statistics.service';
+import { SharedService } from 'src/shared/shared.service';
 @Injectable()
 export class BoxConfigService implements OnModuleInit {
   private saveOrUpdateBox: SaveOrUpdateBoxConfig;
@@ -35,6 +36,7 @@ export class BoxConfigService implements OnModuleInit {
     private readonly recoverBoxService: RecoverBoxService,
     private readonly userService: UserService,
     private readonly statsSerivce: StatisticsService,
+    private readonly sharedService: SharedService,
   ) {
     this.workers = [];
     this.saveOrUpdateBox = new SaveOrUpdateBoxConfig(boxConfigRepo);
@@ -56,6 +58,7 @@ export class BoxConfigService implements OnModuleInit {
               this.recoverBoxService,
               this.userService,
               this.statsSerivce,
+              this.sharedService,
             ),
           );
         });
@@ -120,6 +123,7 @@ export class BoxConfigService implements OnModuleInit {
         this.recoverBoxService,
         this.userService,
         this.statsSerivce,
+        this.sharedService,
       );
       this.workers.push(newWorker);
     }
@@ -180,7 +184,7 @@ export class BoxConfigService implements OnModuleInit {
   }
 
   async claimBoxNft(tx: any) {
-    return await claimNft(tx);
+    return await claimNft(tx, this.sharedService.getRpcConnection());
   }
 
   async deleteAllBoxes(signedMessage: string, authority: string) {

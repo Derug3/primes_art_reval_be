@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { SharedService } from 'src/shared/shared.service';
 import { RecoverBox } from './entity/recover_box.entity';
 import { RecoverBoxRepository } from './recover_box.repository';
 
@@ -9,6 +10,7 @@ export class RecoverBoxService {
   constructor(
     @InjectRepository(RecoverBoxRepository)
     private readonly recoverBoxRepo: RecoverBoxRepository,
+    private readonly sharedService: SharedService,
   ) {}
 
   async saveFailedBox(box: RecoverBox) {

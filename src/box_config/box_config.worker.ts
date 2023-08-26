@@ -11,7 +11,6 @@ import {
 } from './types/box_config.types';
 import {
   checkUserRole,
-  connection,
   getProofPda,
   initBoxIx,
   parseAndValidatePlaceBidTx,
@@ -37,6 +36,7 @@ import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { UserService } from 'src/user/user.service';
 import { StatisticsService } from 'src/statistics/statistics.service';
 import { writeFileSync } from 'fs';
+import { SharedService } from 'src/shared/shared.service';
 
 export class BoxConfigWorker {
   box: BoxConfig;
@@ -65,6 +65,7 @@ export class BoxConfigWorker {
     private readonly recoverBoxService: RecoverBoxService,
     private readonly userService: UserService,
     private readonly statsService: StatisticsService,
+    private readonly sharedService: SharedService,
   ) {
     this.box = boxConfig;
     this.bidsCount = 0;
@@ -145,7 +146,13 @@ export class BoxConfigWorker {
       startedAt: dayjs().unix(),
       state: BoxState.Active,
     };
-    await initBoxIx(this.getBoxPda(), this.box.boxId, this.box, this.activeNft);
+    await initBoxIx(
+      this.getBoxPda(),
+      this.box.boxId,
+      this.box,
+      this.activeNft,
+      this.sharedService.getRpcConnection(),
+    );
     await this.getBox();
 
     await sleep(this.box.boxDuration * 1000);
@@ -194,7 +201,10 @@ export class BoxConfigWorker {
       let hasTriedResolving = false;
       await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       if ((box.winnerAddress || box.bidder) && !this.isWon) {
-        resolved = await resolveBoxIx(boxPda);
+        resolved = await resolveBoxIx(
+          boxPda,
+          this.sharedService.getRpcConnection(),
+        );
         hasTriedResolving = true;
       }
       if (!this.isWon && !this.hasResolved && !resolved) {
@@ -297,7 +307,9 @@ export class BoxConfigWorker {
       );
       const proofPda = getProofPda(this.activeNft);
 
-      const pdaInfo = await connection.getAccountInfo(proofPda);
+      const pdaInfo = await this.sharedService
+        .getRpcConnection()
+        .getAccountInfo(proofPda);
 
       if (pdaInfo || pdaInfo?.data) {
         throw new BadRequestException('This NFT is already minted.');
@@ -354,6 +366,7 @@ export class BoxConfigWorker {
         this.hasResolved,
         relatedUser,
         this.boxTimingState,
+        this.sharedService.getRpcConnection(),
       );
 
       if (existingAuth) {

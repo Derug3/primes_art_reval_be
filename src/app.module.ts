@@ -13,6 +13,7 @@ import { RecoverBoxModule } from './recover_box/recover_box.module';
 import { UserModule } from './user/user.module';
 import { SubscriberService } from './subscriber/subscriber.service';
 import { StatisticsModule } from './statistics/statistics.module';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { StatisticsModule } from './statistics/statistics.module';
     RecoverBoxModule,
     UserModule,
     StatisticsModule,
+    SharedModule,
   ],
 
   providers: [AppService],
