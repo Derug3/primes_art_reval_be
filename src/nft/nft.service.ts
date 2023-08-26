@@ -31,13 +31,16 @@ export class NftService {
       //   authority,
       // );
       // if(!isVerified) throw new UnauthorizedException()
+
       const items = cdnNfts.data.result;
+
       this.logger.log(`Got ${items.length} NFTs`);
       const nfts: Nft[] = await Promise.all(
         items.map(async (item: any, index: number) => {
           try {
             const nft = new Nft();
-            nft.nftId = item.nftId;
+
+            nft.nftId = item.nftId.toString();
             nft.nftUri = item.nftUri;
             nft.nftName = item.nftName;
             nft.boxId =
@@ -63,7 +66,6 @@ export class NftService {
       return true;
     } catch (error) {
       console.log(error);
-
       throw new BadRequestException(error.message);
     }
   }
@@ -175,11 +177,9 @@ export class NftService {
       //   authority,
       // );
       // if(!isVerified) throw new UnauthorizedException()
-      await this.nftRepository
-        .createQueryBuilder('nft')
-        .delete()
-        .where('1=1')
-        .execute();
+      const allNFts = await this.nftRepository.find();
+
+      await this.nftRepository.remove(allNFts);
       return true;
     } catch (error) {
       throw new BadRequestException(error.message);
