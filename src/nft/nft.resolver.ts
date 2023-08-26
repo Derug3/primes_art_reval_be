@@ -38,4 +38,10 @@ export class NftResolver {
   getBoxNfts() {
     return this.nftService.getBoxNfts();
   }
+
+  @Mutation(() => Boolean)
+  deleteAllNfts(
+    @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
+  ) {}
 }

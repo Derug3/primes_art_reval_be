@@ -165,4 +165,24 @@ export class NftService {
 
     return boxNfts;
   }
+
+  async deleteAllNfts(signedMessage: string, authority: string) {
+    try {
+      //TODO:comment in
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
+      await this.nftRepository
+        .createQueryBuilder('nft')
+        .delete()
+        .where('1=1')
+        .execute();
+      return true;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 }
