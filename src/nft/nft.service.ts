@@ -86,7 +86,9 @@ export class NftService {
       if (boxIdNfts.length > 0) {
         return boxIdNfts;
       } else {
-        const filteredPoolNfts = boxNfts.filter((b) => b.boxId === null);
+        const filteredPoolNfts = boxNfts.filter(
+          (b) => b.boxId === null || b.boxId == '0',
+        );
         if (filteredPoolNfts.length > 0) return filteredPoolNfts;
         else
           return await this.nftRepository.find({
