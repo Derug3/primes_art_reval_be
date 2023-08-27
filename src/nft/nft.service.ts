@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThan } from 'typeorm';
 import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
-import { chunk, isNull } from 'lodash';
+import { chunk } from 'lodash';
 import { BoxType } from 'src/enum/enums';
 import { fromBoxPoolString } from 'src/box_config/utilities/helpers';
 import { BoxPool } from 'src/box_config/types/box_config.types';
