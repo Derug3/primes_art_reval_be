@@ -54,4 +54,9 @@ export class StatisticsResolver {
   getPoolsConfig() {
     return this.statisticsService.getPoolsConfig();
   }
+
+  @Mutation(() => Boolean)
+  deleteStats() {
+    return this.statisticsService.deleteStats();
+  }
 }

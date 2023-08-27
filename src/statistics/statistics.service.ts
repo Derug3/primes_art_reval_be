@@ -154,4 +154,17 @@ export class StatisticsService implements OnModuleInit {
       throw new BadRequestException(error.message);
     }
   }
+
+  async deleteStats() {
+    try {
+      const stats = await this.statsRepo.findOne({});
+      stats.highestSale = 0;
+      stats.totalBids = 0;
+      stats.totalSales = 0;
+      await this.statsRepo.save(stats);
+      return true;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 }
