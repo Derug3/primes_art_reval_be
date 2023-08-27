@@ -293,7 +293,6 @@ export const initBoxIx = async (
       rpcResponse: error.message,
       event: 'InitBox',
     });
-
     return false;
   }
 };

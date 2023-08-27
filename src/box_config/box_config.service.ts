@@ -186,7 +186,6 @@ export class BoxConfigService implements OnModuleInit {
   async claimBoxNft(tx: any) {
     return await claimNft(tx, this.sharedService.getRpcConnection());
   }
-
   async deleteAllBoxes(signedMessage: string, authority: string) {
     //TODO:comment in
     // const isVerified = checkIfMessageIsSigned(

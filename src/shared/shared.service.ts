@@ -27,7 +27,10 @@ export class SharedService implements OnModuleInit {
     }
 
     this.rpcConnections.set(rpcConnection, usedTimes + 1);
-
-    return new Connection(rpcConnection, 'confirmed');
+    //TODO:return rpcConnection
+    return new Connection(
+      'https://delicate-withered-theorem.solana-devnet.quiknode.pro/0399d35b8b5de1ba358bd014f584ba88d7709bcf',
+      'confirmed',
+    );
   }
 }
