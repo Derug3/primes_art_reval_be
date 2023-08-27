@@ -44,7 +44,7 @@ export class UserService {
 
   mapUsers(roles: any[]): User[] {
     return roles.map((r) => ({
-      discordId: r.userDiscordId.toString(),
+      discordId: r.id.toString(),
       discordUsername: r.userDiscordName,
       userRoles: this.mapRoles(r),
       userTwitterName: r.userTwitterName ?? null,
