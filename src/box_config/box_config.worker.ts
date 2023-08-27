@@ -146,18 +146,17 @@ export class BoxConfigWorker {
       startedAt: dayjs().unix(),
       state: BoxState.Active,
     };
-    const isInitialized = await initBoxIx(
+    await initBoxIx(
       this.getBoxPda(),
       this.box.boxId,
       this.box,
       this.activeNft,
       this.sharedService.getRpcConnection(),
     );
-    if (isInitialized) {
-      await this.getBox();
 
-      await sleep(this.box.boxDuration * 1000);
-    }
+    await this.getBox();
+
+    await sleep(this.box.boxDuration * 1000);
 
     while (this.additionalTimeout > 0) {
       let sleepAmount = this.additionalTimeout;
