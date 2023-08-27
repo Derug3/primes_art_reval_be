@@ -86,10 +86,11 @@ export class NftService {
       if (boxIdNfts.length > 0) {
         return boxIdNfts;
       } else {
-        if (boxNfts.length > 0) return boxNfts.filter((b) => b.boxId === null);
+        const filteredPoolNfts = boxNfts.filter((b) => b.boxId === null);
+        if (filteredPoolNfts.length > 0) return filteredPoolNfts;
         else
           return await this.nftRepository.find({
-            where: { minted: false, isInBox: false },
+            where: { minted: false, isInBox: false, boxPool: IsNull() },
           });
       }
     }
