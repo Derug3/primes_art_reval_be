@@ -14,8 +14,8 @@ export class UserRepository extends Repository<User> {
 
   getUserByWallet(wallet: string) {
     return this.createQueryBuilder('user')
-      .where('LOWER(:wallet)=ANY(LOWER(user.wallets))', { wallet })
-      .getOne();
+    .where('LOWER(user.wallets) = LOWER(:wallet)', { wallet })
+    .getOne();
   }
 
   getAllUsers() {
