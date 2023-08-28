@@ -13,14 +13,9 @@ export class UserRepository extends Repository<User> {
   }
 
   getUserByWallet(wallet: string) {
-    const qb = this.createQueryBuilder('user').where(
-      'user.wallets IN (:...wallet)',
-      {
-        wallet: [wallet],
-      },
-    );
-
-    return qb.getOne();
+    return this.createQueryBuilder('user')
+      .where('LOWER(:wallet)=ANY(LOWER(user.wallets))', { wallet })
+      .getOne();
   }
 
   getAllUsers() {
