@@ -352,7 +352,12 @@ export class BoxConfigWorker {
       }
 
       const permittedPool = checkUserRole(relatedUser);
-      if (permittedPool > this.box.boxPool && action !== 2 && action !== 3) {
+      if (
+        relatedUser &&
+        permittedPool > this.box.boxPool &&
+        action !== 2 &&
+        action !== 3
+      ) {
         throw new BadRequestException(
           "Invalid role. You don't have permission to bid on this box!",
         );

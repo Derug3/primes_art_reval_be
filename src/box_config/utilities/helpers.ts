@@ -211,7 +211,7 @@ export const resolveBoxIx = async (
     await connection.confirmTransaction(txSig);
     emitToWebhook({
       eventName: 'Auction Won',
-      winner: boxData.winnerAddress.toString() ?? boxData.bidder.toString(),
+      winner: boxData.winnerAddress?.toString() ?? boxData.bidder?.toString(),
       winningPrice: boxData.activeBid.toNumber(),
       nft,
     });
@@ -448,31 +448,24 @@ export function checkIfMessageIsSigned(
     return false;
   }
 }
-
 export const getUserMintPassNfts = async (
   userWallet: string,
   connection: Connection,
 ) => {
   try {
     const metaplex = new Metaplex(connection);
-    const walletNfts: string[] = (
-      await connection.getParsedTokenAccountsByOwner(
-        new PublicKey(userWallet),
-        { programId: TOKEN_PROGRAM_ID },
-      )
-    ).value.map((v) => v.account.data.parsed.info.mint);
+    const nfts = await metaplex
+      .nfts()
+      .findAllByOwner({ owner: new PublicKey(userWallet) });
+    console.log(nfts.length, 'NLEN');
 
-    for (const wNft of walletNfts) {
-      const metaplexNft = await metaplex
-        .nfts()
-        .findByMint({ mintAddress: new PublicKey(wNft) });
-
-      if (metaplexNft.collection.address.toString() === mintPassCollection) {
-        return true;
-      }
-    }
+    if (
+      nfts.find((n) => n.collection.address.toString() === mintPassCollection)
+    )
+      return true;
     return false;
   } catch (error) {
+    console.log(error);
     return false;
   }
 };
