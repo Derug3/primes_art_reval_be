@@ -140,6 +140,7 @@ export const parseAndValidatePlaceBidTx = async (
         emitToWebhook({
           message: 'Minted',
           bidder: user.discordUsername ?? bidder.toString(),
+          userId: user.discordId ?? user.wallets,
           nftUri: box.nftUri,
           nftId: box.nftId,
           bidders,
@@ -167,6 +168,7 @@ export const parseAndValidatePlaceBidTx = async (
 export const resolveBoxIx = async (
   boxAddress: PublicKey,
   connection: Connection,
+  nft: Nft,
 ) => {
   const [boxTreasury] = PublicKey.findProgramAddressSync(
     [primeBoxTreasurySeed, boxAddress.toBuffer()],
@@ -203,7 +205,12 @@ export const resolveBoxIx = async (
     tx.sign(authority);
     const txSig = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(txSig);
-
+    emitToWebhook({
+      eventName: 'Auction Won',
+      winner: boxData.winnerAddress.toString() ?? boxData.bidder.toString(),
+      winningPrice: boxData.activeBid.toNumber(),
+      nft,
+    });
     return true;
   } catch (error) {
     console.log(error);
@@ -318,7 +325,6 @@ export const claimNft = async (tx: any, connection: Connection) => {
     const nonComputeBudgetIxs = transaction.instructions.filter(
       (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
     )[0];
-    console.log(nonComputeBudgetIxs);
 
     emitToWebhook({
       message: 'Nft claimed',

@@ -205,6 +205,7 @@ export class BoxConfigWorker {
         resolved = await resolveBoxIx(
           boxPda,
           this.sharedService.getRpcConnection(),
+          this.activeNft,
         );
         hasTriedResolving = true;
       }
