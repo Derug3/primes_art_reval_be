@@ -13,7 +13,10 @@ export class UserRepository extends Repository<User> {
   }
 
   getUserByWallet(wallet: string) {
-    return this.findOne({ where: { wallets: Includes(wallet) } });
+    return this.createQueryBuilder('user').where(
+      ':wallet = ANY(user.wallets)',
+      { wallet },
+    );
   }
 
   getAllUsers() {
@@ -24,4 +27,4 @@ export class UserRepository extends Repository<User> {
 export const Includes = <T extends string | number>(
   value: T,
 ): FindOperator<T> =>
-  Raw((columnAlias) => `:value = ANY(${columnAlias})`, { value });
+  Raw((columnAlias) => `:value = ANY(${columnAlias})`, { value: [value] });
