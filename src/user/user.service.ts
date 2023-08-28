@@ -36,7 +36,7 @@ export class UserService {
 
   getAllUsers() {
     try {
-      return this.userRepo.getAllUsers();
+      return this.userRepo.find();
     } catch (error) {
       throw new BadRequestException(error.message);
     }
