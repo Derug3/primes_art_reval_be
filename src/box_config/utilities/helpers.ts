@@ -101,9 +101,12 @@ export const parseAndValidatePlaceBidTx = async (
       transaction.serialize({ requireAllSignatures: false }),
     );
 
-    await connection.confirmTransaction(txSig);
+    const confirmed = await connection.confirmTransaction(txSig);
     if (instructionsWithoutCb.length > 1) {
       hasResolved = true;
+    }
+    if (confirmed.value.err !== null) {
+      throw new Error(confirmed.value.err);
     }
     const box = await program.account.boxData.fetch(
       instructionsWithoutCb[0].keys[0].pubkey,
