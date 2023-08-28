@@ -377,6 +377,7 @@ export class BoxConfigWorker {
         relatedUser,
         this.boxTimingState,
         rpcConnection,
+        this.activeNft,
       );
 
       if (existingAuth) {

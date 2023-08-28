@@ -77,6 +77,7 @@ export const parseAndValidatePlaceBidTx = async (
   user: User | null,
   boxTimingState: BoxTimigState,
   connection: Connection,
+  nft: Nft,
 ): Promise<string | null> => {
   try {
     const transaction = Transaction.from(tx.data);
@@ -133,20 +134,18 @@ export const parseAndValidatePlaceBidTx = async (
         emitToWebhook({
           message: 'Placed bid',
           bidder: user.discordUsername ?? bidder.toString(),
-          nftUri: box.nftUri,
-          nftId: box.nftId,
           bidders,
           boxState: boxTimingState.state,
           secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
           bidAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
+          nft,
         });
       } else {
         emitToWebhook({
           message: 'Minted',
           bidder: user.discordUsername ?? bidder.toString(),
           userId: user.discordId ?? user.wallets,
-          nftUri: box.nftUri,
-          nftId: box.nftId,
+          nft,
           bidders,
           boxState: boxTimingState.state,
           secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
