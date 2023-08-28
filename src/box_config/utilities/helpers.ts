@@ -138,14 +138,24 @@ export const parseAndValidatePlaceBidTx = async (
           boxState: boxTimingState.state,
           secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
           bidAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
-          nft,
+          nft: {
+            nftId: nft.nftId,
+            nftImgUrl: nft.nftImage,
+            uri: nft.nftUri,
+            name: nft.nftName,
+          },
         });
       } else {
         emitToWebhook({
           message: 'Minted',
           bidder: user.discordUsername ?? bidder.toString(),
           userId: user.discordId ?? user.wallets,
-          nft,
+          nft: {
+            nftId: nft.nftId,
+            nftImgUrl: nft.nftImage,
+            uri: nft.nftUri,
+            name: nft.nftName,
+          },
           bidders,
           boxState: boxTimingState.state,
           secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
@@ -212,7 +222,12 @@ export const resolveBoxIx = async (
       eventName: 'Auction Won',
       winner: boxData.winnerAddress?.toString() ?? boxData.bidder?.toString(),
       winningPrice: boxData.activeBid.toNumber(),
-      nft,
+      nft: {
+        nftId: nft.nftId,
+        nftImgUrl: nft.nftImage,
+        uri: nft.nftUri,
+        name: nft.nftName,
+      },
     });
     return true;
   } catch (error) {
