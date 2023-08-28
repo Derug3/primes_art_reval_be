@@ -149,7 +149,8 @@ export const parseAndValidatePlaceBidTx = async (
         emitToWebhook({
           message: 'Minted',
           bidder: user.discordUsername ?? bidder.toString(),
-          userId: user.discordId ?? user.wallets,
+          userId: user.id ?? user.wallets,
+          userDiscordId: user.discordId,
           nft: {
             nftId: nft.nftId,
             nftImgUrl: nft.nftImage,
