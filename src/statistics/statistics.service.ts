@@ -157,10 +157,10 @@ export class StatisticsService implements OnModuleInit {
 
   async deleteStats() {
     try {
-      const stats = await this.statsRepo.findOne({});
-      stats.highestSale = 0;
-      stats.totalBids = 0;
-      stats.totalSales = 0;
+      const stats = await this.statsRepo.find();
+      stats[0].highestSale = 0;
+      stats[0].totalBids = 0;
+      stats[0].totalSales = 0;
       await this.statsRepo.save(stats);
       return true;
     } catch (error) {
