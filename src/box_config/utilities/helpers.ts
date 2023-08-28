@@ -106,7 +106,8 @@ export const parseAndValidatePlaceBidTx = async (
       hasResolved = true;
     }
     if (confirmed.value.err !== null) {
-      throw new Error(confirmed.value.err);
+      // throw new Error(confirmed.value.err);
+      throw new Error('Transaction failed');
     }
     const box = await program.account.boxData.fetch(
       instructionsWithoutCb[0].keys[0].pubkey,
