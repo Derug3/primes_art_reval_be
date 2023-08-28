@@ -4,6 +4,7 @@ import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  process.setMaxListeners(1500);
 
   app.enableCors();
   app.getHttpAdapter().getInstance().disable('x-powered-by');

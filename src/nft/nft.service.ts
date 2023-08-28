@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan } from 'typeorm';
+import { IsNull, MoreThan } from 'typeorm';
 import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 import { chunk } from 'lodash';
@@ -16,39 +16,40 @@ export class NftService {
     private readonly nftRepository: NftRepository,
     private readonly configService: ConfigService,
   ) {}
-
-  async storeNfts() {
+  async storeNfts(signedMessage: string, authority: string) {
     try {
       const cdnUrl = this.configService.get<string>('NFT_CND_URL');
       this.logger.log(`Started inserting of nfts!`);
-
       const cdnNfts = await (await fetch(cdnUrl, { method: 'GET' })).json();
       if (cdnNfts.error) {
         throw new BadRequestException(cdnNfts.error_message);
       }
+      //TODO:comment in
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
 
       const items = cdnNfts.data.result;
 
       this.logger.log(`Got ${items.length} NFTs`);
-
-      await this.nftRepository.delete({});
-
       const nfts: Nft[] = await Promise.all(
-        items.map(async (item: any) => {
+        items.map(async (item: any, index: number) => {
           try {
             const nft = new Nft();
+
+            nft.nftId = item.nftId.toString();
             nft.nftUri = item.nftUri;
             nft.nftName = item.nftName;
-            nft.isInBox = false;
-            nft.reshuffleCount = 0;
-            nft.boxId = item.boxId === '' ? null : item.boxId;
+            nft.boxId =
+              item.boxId === '' || item.boxId === null ? null : item.boxId;
             nft.nftImage = item.imageUri;
             nft.boxPool = fromBoxPoolString(item.box);
-
             return nft;
           } catch (error) {
             console.log(error);
-
             return null;
           }
         }),
@@ -65,7 +66,6 @@ export class NftService {
       return true;
     } catch (error) {
       console.log(error);
-
       throw new BadRequestException(error.message);
     }
   }
@@ -76,19 +76,27 @@ export class NftService {
     });
 
     if (!boxNfts || boxNfts.length === 0) {
-      return this.nftRepository.find({
-        where: { minted: false, isInBox: false, boxPool: null },
+      const publicNfts = await this.nftRepository.find({
+        where: { minted: false, isInBox: false, boxPool: IsNull() },
       });
+      return publicNfts;
     } else {
-      const boxIdNfts = boxNfts.filter((nft) => nft.boxId === boxId);
+      const boxIdNfts = boxNfts.filter((nft) => nft.boxId == boxId);
+
       if (boxIdNfts.length > 0) {
         return boxIdNfts;
       } else {
-        return boxNfts;
+        const filteredPoolNfts = boxNfts.filter(
+          (b) => b.boxId === null || b.boxId == '0',
+        );
+        if (filteredPoolNfts.length > 0) return filteredPoolNfts;
+        else
+          return await this.nftRepository.find({
+            where: { minted: false, isInBox: false, boxPool: IsNull() },
+          });
       }
     }
   }
-
   async updateNft(nftId: string, hasMinted: boolean) {
     try {
       const nft = await this.nftRepository.findOne({ where: { nftId } });
@@ -130,18 +138,11 @@ export class NftService {
     return this.nftRepository.find({ where: { minted: true } });
   }
 
-  async updateNfts() {
-    const nfts = (await this.nftRepository.find()).map((n) => ({
-      ...n,
-      minted: true,
-    }));
-
-    const rand = Math.round(Math.random() * (nfts.length - 1));
-
-    nfts[rand].minted = false;
-
-    await this.nftRepository.save(nfts);
-    return true;
+  getAllNfts() {
+    const allNfts = this.nftRepository.find();
+    return allNfts.then((nfts) =>
+      nfts.sort((a, b) => Number(a.nftId) - Number(b.nftId)),
+    );
   }
 
   async getBoxNfts() {
@@ -171,5 +172,23 @@ export class NftService {
     });
 
     return boxNfts;
+  }
+
+  async deleteAllNfts(signedMessage: string, authority: string) {
+    try {
+      //TODO:comment in
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
+      const allNFts = await this.nftRepository.find();
+
+      await this.nftRepository.remove(allNFts);
+      return true;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

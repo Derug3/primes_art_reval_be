@@ -10,7 +10,7 @@ export class RecoverBox {
   boxTreasury: string;
   @Column({ nullable: true })
   winner: string;
-  @Column()
+  @Column({ type: 'float' })
   winningAmount: number;
   @Column()
   nftId: string;

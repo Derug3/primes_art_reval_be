@@ -12,6 +12,9 @@ export class UserService {
   async storeUsers() {
     try {
       const users = await (await fetch(rolesEndpoint)).json();
+      const existingUsers = await this.userRepo.find();
+      if (existingUsers && existingUsers.length > 0)
+        await this.userRepo.remove(existingUsers);
       if (!users.data.success) {
         throw new BadRequestException(users.data.error);
       }
@@ -31,9 +34,17 @@ export class UserService {
     }
   }
 
+  getAllUsers() {
+    try {
+      return this.userRepo.find();
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   mapUsers(roles: any[]): User[] {
     return roles.map((r) => ({
-      discordId: r.userDiscordId,
+      discordId: r.id.toString(),
       discordUsername: r.userDiscordName,
       userRoles: this.mapRoles(r),
       userTwitterName: r.userTwitterName ?? null,

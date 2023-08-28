@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
   OnModuleInit,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
@@ -14,11 +15,12 @@ import { BoxConfigInput, BoxState } from './types/box_config.types';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
 import { NftService } from 'src/nft/nft.service';
-import { claimNft } from './utilities/helpers';
+import { checkIfMessageIsSigned, claimNft } from './utilities/helpers';
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { BoxType } from 'src/enum/enums';
 import { UserService } from 'src/user/user.service';
 import { StatisticsService } from 'src/statistics/statistics.service';
+import { SharedService } from 'src/shared/shared.service';
 @Injectable()
 export class BoxConfigService implements OnModuleInit {
   private saveOrUpdateBox: SaveOrUpdateBoxConfig;
@@ -34,6 +36,7 @@ export class BoxConfigService implements OnModuleInit {
     private readonly recoverBoxService: RecoverBoxService,
     private readonly userService: UserService,
     private readonly statsSerivce: StatisticsService,
+    private readonly sharedService: SharedService,
   ) {
     this.workers = [];
     this.saveOrUpdateBox = new SaveOrUpdateBoxConfig(boxConfigRepo);
@@ -55,6 +58,7 @@ export class BoxConfigService implements OnModuleInit {
               this.recoverBoxService,
               this.userService,
               this.statsSerivce,
+              this.sharedService,
             ),
           );
         });
@@ -63,12 +67,14 @@ export class BoxConfigService implements OnModuleInit {
     }
   }
 
-  async saveOrUpdateBoxHandler(box: BoxConfigInput) {
-    const saved = await this.saveOrUpdateBox.execute(box);
-    this.logger.debug(`Staring box worker with id:${saved.boxId}`);
+  async saveOrUpdateBoxHandler(
+    box: BoxConfigInput,
+    signedMessage: string,
+    authority: string,
+  ) {
     if (
       (box.boxType === BoxType.BidBuyNow || box.boxType === BoxType.BuyNow) &&
-      !box.buyNowPrice
+      (box.buyNowPrice <= 0 || !box.buyNowPrice)
     ) {
       throw new BadRequestException(
         "Can't create box of type BidBuy and Buy without buy now price defined!",
@@ -76,25 +82,37 @@ export class BoxConfigService implements OnModuleInit {
     }
     if (
       (box.boxType === BoxType.Bid || box.boxType === BoxType.BidBuyNow) &&
-      !box.bidStartPrice
+      (!box.bidStartPrice ||
+        box.bidStartPrice <= 0 ||
+        !box.bidIncrease ||
+        box.bidIncrease <= 0)
     ) {
       throw new BadRequestException(
         "Can't create box of type BidBuy and Bid without bid start price defined!",
       );
     }
-    if (box.boxType === BoxType.Bid && box.buyNowPrice > 0) {
+    if (box.boxType === BoxType.Bid && box.buyNowPrice >= 0) {
       throw new BadRequestException(
         "Can't define buy now price on box that has bid type!",
       );
     }
     if (
       box.boxType === BoxType.BuyNow &&
-      (box.bidStartPrice > 0 || box.bidIncrease > 0)
+      (box.bidStartPrice >= 0 || box.bidIncrease >= 0)
     ) {
       throw new BadRequestException(
-        "Can't define bid  price on box that has buy now tyoe type!",
+        "Can't define bid  price on box that has buy now type type!",
       );
     }
+    //TODO:comment in
+    // const isVerified = checkIfMessageIsSigned(
+    //   signedMessage,
+    //   'Update Primes Mint',
+    //   authority,
+    // );
+    // if(!isVerified) throw new UnauthorizedException()
+    const saved = await this.saveOrUpdateBox.execute(box);
+    this.logger.debug(`Staring box worker with id:${saved.boxId}`);
     if (!box.boxId) {
       const newWorker = new BoxConfigWorker(
         this.subscriptionService,
@@ -105,6 +123,7 @@ export class BoxConfigService implements OnModuleInit {
         this.recoverBoxService,
         this.userService,
         this.statsSerivce,
+        this.sharedService,
       );
       this.workers.push(newWorker);
     }
@@ -117,13 +136,27 @@ export class BoxConfigService implements OnModuleInit {
     }
   }
 
-  getActiveBoxes() {
-    return this.workers.map((w) => w.mapToDto());
+  async getActiveBoxes() {
+    const configs = this.workers.map((w) => w.mapToDto());
+
+    return configs;
   }
 
-  async deleteBox(boxId: string) {
+  async deleteBox(boxId: string, signedMessage: string, authority: string) {
     try {
-      const boxIndex = this.workers.findIndex((box) => box.box.boxId === boxId);
+      const boxIndex = this.workers.findIndex(
+        (box) => box.box.boxId.toString() === boxId,
+      );
+      if (boxIndex < 0) {
+        throw new BadRequestException('Box not found!');
+      }
+      //TODO:comment in
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
       this.workers[boxIndex].box.boxState = BoxState.Removed;
       this.workers.splice(boxIndex, 1);
       const existingBox = await this.boxConfigRepo.findOne({
@@ -139,11 +172,12 @@ export class BoxConfigService implements OnModuleInit {
     }
   }
 
-  async placeBid(serializedTx: string, boxId: string) {
-    const box = this.workers.find((b) => b.box.boxId === boxId);
+  async placeBid(serializedTx: string, boxId: string, nftId: string) {
+    const box = this.workers?.find((b) => b.box.boxId.toString() === boxId);
 
     if (!box) throw new NotFoundException('Given box not found!');
-
+    if (box.activeNft.nftId !== nftId)
+      throw new Error('Invalid NFT.Please try again!');
     return box.placeBid(serializedTx);
   }
 
@@ -152,11 +186,18 @@ export class BoxConfigService implements OnModuleInit {
   }
 
   async claimBoxNft(tx: any) {
-    return await claimNft(tx);
+    return await claimNft(tx, this.sharedService.getRpcConnection());
   }
-
-  async deleteAllBoxes() {
+  async deleteAllBoxes(signedMessage: string, authority: string) {
+    //TODO:comment in
+    // const isVerified = checkIfMessageIsSigned(
+    //   signedMessage,
+    //   'Update Primes Mint',
+    //   authority,
+    // );
+    // if(!isVerified) throw new UnauthorizedException()
     await this.boxConfigRepo.delete({});
+
     this.workers = [];
     return true;
   }

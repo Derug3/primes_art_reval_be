@@ -7,8 +7,11 @@ export class NftResolver {
   constructor(private readonly nftService: NftService) {}
 
   @Mutation(() => Boolean)
-  insertNfts(@Args('messgeSignature') messageSignature: string) {
-    return this.nftService.storeNfts();
+  insertNfts(
+    @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
+  ) {
+    return this.nftService.storeNfts(signedMessage, authority);
   }
 
   @Query(() => [Nft])
@@ -26,13 +29,21 @@ export class NftResolver {
     return this.nftService.getMinted();
   }
 
-  @Mutation(() => Boolean)
-  mutateNfts() {
-    return this.nftService.updateNfts();
+  @Query(() => [Nft])
+  getAllNfts() {
+    return this.nftService.getAllNfts();
   }
 
   @Query(() => [BoxNfts])
   getBoxNfts() {
     return this.nftService.getBoxNfts();
+  }
+
+  @Mutation(() => Boolean)
+  deleteAllNfts(
+    @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
+  ) {
+    return this.nftService.deleteAllNfts(signedMessage, authority);
   }
 }

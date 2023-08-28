@@ -7,6 +7,7 @@ import { NftModule } from 'src/nft/nft.module';
 import { RecoverBoxModule } from 'src/recover_box/recover_box.module';
 import { UserModule } from 'src/user/user.module';
 import { StatisticsModule } from 'src/statistics/statistics.module';
+import { SharedModule } from 'src/shared/shared.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { StatisticsModule } from 'src/statistics/statistics.module';
     RecoverBoxModule,
     UserModule,
     StatisticsModule,
+    SharedModule,
   ],
   providers: [BoxConfigResolver, BoxConfigService, BoxConfigRepository],
 })
