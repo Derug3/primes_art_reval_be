@@ -172,10 +172,12 @@ export class BoxConfigService implements OnModuleInit {
     }
   }
 
-  async placeBid(serializedTx: string, boxId: string) {
+  async placeBid(serializedTx: string, boxId: string, nftId: string) {
     const box = this.workers?.find((b) => b.box.boxId.toString() === boxId);
 
     if (!box) throw new NotFoundException('Given box not found!');
+    if (box.activeNft.nftId !== nftId)
+      throw new Error('Invalid NFT.Please try again!');
     return box.placeBid(serializedTx);
   }
 

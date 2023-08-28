@@ -43,8 +43,9 @@ export class BoxConfigResolver {
   placeBid(
     @Args('serializedTransaction') serializedTransaction: string,
     @Args('boxId') boxId: string,
+    @Args('nftId') nftId: string,
   ) {
-    return this.boxConfigService.placeBid(serializedTransaction, boxId);
+    return this.boxConfigService.placeBid(serializedTransaction, boxId, nftId);
   }
 
   @Mutation(() => Boolean)
