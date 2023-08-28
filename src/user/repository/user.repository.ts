@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, FindOperator, ILike, Raw, Repository } from 'typeorm';
+import { DataSource, ILike, Repository } from 'typeorm';
 import { User } from '../entity/user.entity';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class UserRepository extends Repository<User> {
   }
 
   getUserByWallet(wallet: string) {
-    return this.find({
+    return this.findOne({
       where: {
         wallets: ILike(`%${wallet}%`),
       },
