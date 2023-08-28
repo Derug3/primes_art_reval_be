@@ -16,6 +16,7 @@ export const primeBoxTreasurySeed = Buffer.from('prime-box-treasury');
 export const primeBoxWinnerSeed = Buffer.from('prime-box-winner');
 import * as dotenv from 'dotenv';
 import { decode } from 'bs58';
+import { Metaplex } from '@metaplex-foundation/js';
 import { BoxConfig } from '../entity/box_config.entity';
 import { Nft } from 'src/nft/entity/nft.entity';
 import { BoxType } from 'src/enum/enums';
@@ -23,6 +24,7 @@ import { Bidders, BoxPool, BoxTimigState } from '../types/box_config.types';
 import { BadRequestException } from '@nestjs/common';
 import { User } from 'src/user/entity/user.entity';
 import { roles } from './rolesData';
+import { TOKEN_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
 
 dotenv.config();
 export const sleep = async (ms: number): Promise<NodeJS.Timeout> => {
@@ -32,6 +34,8 @@ export const sleep = async (ms: number): Promise<NodeJS.Timeout> => {
 };
 
 export const programId = process.env.PROGRAM_ID!;
+
+const mintPassCollection = process.env.MINT_PASS_COLLECTION!;
 
 const authority = process.env.AUTHORITY!;
 
@@ -444,3 +448,31 @@ export function checkIfMessageIsSigned(
     return false;
   }
 }
+
+export const getUserMintPassNfts = async (
+  userWallet: string,
+  connection: Connection,
+) => {
+  try {
+    const metaplex = new Metaplex(connection);
+    const walletNfts: string[] = (
+      await connection.getParsedTokenAccountsByOwner(
+        new PublicKey(userWallet),
+        { programId: TOKEN_PROGRAM_ID },
+      )
+    ).value.map((v) => v.account.data.parsed.info.mint);
+
+    for (const wNft of walletNfts) {
+      const metaplexNft = await metaplex
+        .nfts()
+        .findByMint({ mintAddress: new PublicKey(wNft) });
+
+      if (metaplexNft.collection.address.toString() === mintPassCollection) {
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    return false;
+  }
+};

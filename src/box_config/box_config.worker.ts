@@ -12,6 +12,7 @@ import {
 import {
   checkUserRole,
   getProofPda,
+  getUserMintPassNfts,
   initBoxIx,
   parseAndValidatePlaceBidTx,
   primeBoxSeed,
@@ -339,15 +340,15 @@ export class BoxConfigWorker {
         );
       }
 
-      if (
-        !relatedUser &&
-        this.box.boxPool !== BoxPool.Public &&
-        action !== 2 &&
-        action !== 3
-      ) {
-        throw new BadRequestException(
-          "Invalid role. You don't have permission to bid on this box!",
+      if (!relatedUser) {
+        const hasMintPass = await getUserMintPassNfts(
+          wallet.toString(),
+          this.sharedService.getRpcConnection(),
         );
+        if (this.box.boxPool !== BoxPool.Public && !hasMintPass)
+          throw new BadRequestException(
+            "Invalid role. You don't have permissions on this box!",
+          );
       }
 
       const permittedPool = checkUserRole(relatedUser);
