@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, FindOperator, Raw, Repository } from 'typeorm';
 import { User } from '../entity/user.entity';
 
 @Injectable()
@@ -13,12 +13,15 @@ export class UserRepository extends Repository<User> {
   }
 
   getUserByWallet(wallet: string) {
-    return this.createQueryBuilder('user')
-      .where('user.wallets @> ARRAY[:wallet]', { wallet })
-      .getOne();
+    return this.findOne({ where: { wallets: Includes(wallet) } });
   }
 
   getAllUsers() {
     return this.find();
   }
 }
+
+export const Includes = <T extends string | number>(
+  value: T,
+): FindOperator<T> =>
+  Raw((columnAlias) => `:value = ANY(${columnAlias})`, { value });
