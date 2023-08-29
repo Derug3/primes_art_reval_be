@@ -91,7 +91,6 @@ export const parseAndValidatePlaceBidTx = async (
         ix.programId.toString() !== ComputeBudgetProgram.programId.toString(),
     );
     const bidder = instructionsWithoutCb[0].keys[1].pubkey.toString();
-
     if (instructionsWithoutCb[0].programId.toString() !== programId) {
       throw new Error('Invalid program id');
     }
@@ -507,7 +506,7 @@ export const recoverBox = async (
     if (accInfo) {
       return true;
     }
-    const authorityKey = new PublicKey(authority);
+    const authoritySig = getAuthorityAsSigner();
     const ix = await program.methods
       .recoverBox(new PublicKey(recoverBox.winner), {
         nftId: recoverBox.nftId,
@@ -515,7 +514,7 @@ export const recoverBox = async (
         winningAmount: new BN(recoverBox.winningAmount),
       })
       .accounts({
-        authority: authorityKey,
+        authority: authoritySig.publicKey,
         boxData: new PublicKey(recoverBox.boxData),
         boxTreasury: new PublicKey(recoverBox.boxTreasury),
         systemProgram: SystemProgram.programId,
@@ -523,10 +522,9 @@ export const recoverBox = async (
         treasury: new PublicKey(treasury),
       })
       .instruction();
-
     const txMess = new TransactionMessage({
       instructions: [ix],
-      payerKey: authorityKey,
+      payerKey: authoritySig.publicKey,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
     }).compileToV0Message();
     const versionedTx = new VersionedTransaction(txMess);
