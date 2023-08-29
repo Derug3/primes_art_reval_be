@@ -6,6 +6,8 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
+  TransactionMessage,
+  VersionedTransaction,
 } from '@solana/web3.js';
 import * as bs58 from 'bs58';
 import { AnchorProvider, BN, Program, Wallet } from '@project-serum/anchor';
@@ -25,6 +27,7 @@ import { BadRequestException } from '@nestjs/common';
 import { User } from 'src/user/entity/user.entity';
 import { roles } from './rolesData';
 import { TOKEN_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
+import { RecoverBox } from 'src/recover_box/entity/recover_box.entity';
 
 dotenv.config();
 export const sleep = async (ms: number): Promise<NodeJS.Timeout> => {
@@ -88,7 +91,6 @@ export const parseAndValidatePlaceBidTx = async (
         ix.programId.toString() !== ComputeBudgetProgram.programId.toString(),
     );
     const bidder = instructionsWithoutCb[0].keys[1].pubkey.toString();
-
     if (instructionsWithoutCb[0].programId.toString() !== programId) {
       throw new Error('Invalid program id');
     }
@@ -134,7 +136,9 @@ export const parseAndValidatePlaceBidTx = async (
       ) {
         emitToWebhook({
           message: 'Placed bid',
-          bidder: user.discordUsername ?? bidder.toString(),
+          bidder: user?.discordUsername ?? bidder.toString(),
+          userId: user?.id ?? '',
+          userDiscordId: user?.discordId ?? '',
           bidders,
           boxState: boxTimingState.state,
           secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
@@ -149,9 +153,9 @@ export const parseAndValidatePlaceBidTx = async (
       } else {
         emitToWebhook({
           message: 'Minted',
-          bidder: user.discordUsername ?? bidder.toString(),
-          userId: user.id ?? user.wallets,
-          userDiscordId: user.discordId,
+          bidder: user?.discordUsername ?? bidder.toString(),
+          userId: user?.id ?? '',
+          userDiscordId: user?.discordId ?? '',
           nft: {
             nftId: nft.nftId,
             nftImgUrl: nft.nftImage,
@@ -164,7 +168,9 @@ export const parseAndValidatePlaceBidTx = async (
           mintAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
         });
       }
-    } catch (error) {}
+    } catch (error) {
+      console.log(error);
+    }
     return existingBidProofAuthority;
   } catch (error) {
     console.log(error);
@@ -430,6 +436,7 @@ export const getProofPda = (nft: Nft) => {
 
 export const emitToWebhook = (data: any) => {
   try {
+    console.log(`Emitting to webhook data`);
     fetch(data.eventName ? webHookErrorUrl : webhookUrl, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -473,15 +480,81 @@ export const getUserMintPassNfts = async (
     const nfts = await metaplex
       .nfts()
       .findAllByOwner({ owner: new PublicKey(userWallet) });
-    console.log(nfts.length, 'NLEN');
 
     if (
-      nfts.find((n) => n.collection.address.toString() === mintPassCollection)
+      nfts.find((n) => n.collection?.address.toString() === mintPassCollection)
     )
       return true;
     return false;
   } catch (error) {
     console.log(error);
+    return false;
+  }
+};
+
+export const recoverBox = async (
+  recoverBox: RecoverBox,
+  connection: Connection,
+) => {
+  const [winningProof] = PublicKey.findProgramAddressSync(
+    [primeBoxWinnerSeed, Buffer.from(recoverBox.nftId)],
+    program.programId,
+  );
+
+  try {
+    const accInfo = await connection.getAccountInfo(winningProof);
+    if (accInfo) {
+      return true;
+    }
+    const authoritySig = getAuthorityAsSigner();
+    const ix = await program.methods
+      .recoverBox(new PublicKey(recoverBox.winner), {
+        nftId: recoverBox.nftId,
+        nftUri: recoverBox.nftUri,
+        winningAmount: new BN(recoverBox.winningAmount),
+      })
+      .accounts({
+        authority: authoritySig.publicKey,
+        boxData: new PublicKey(recoverBox.boxData),
+        boxTreasury: new PublicKey(recoverBox.boxTreasury),
+        systemProgram: SystemProgram.programId,
+        winningProof,
+        treasury: new PublicKey(treasury),
+      })
+      .instruction();
+    const txMess = new TransactionMessage({
+      instructions: [ix],
+      payerKey: authoritySig.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+    }).compileToV0Message();
+    const versionedTx = new VersionedTransaction(txMess);
+    versionedTx.sign([getAuthorityAsSigner()]);
+    const txSig = await connection.sendRawTransaction(versionedTx.serialize());
+    const txConfirmed = await connection.confirmTransaction(txSig);
+    if (!txConfirmed.value.err) {
+      const uriData = await (await fetch(recoverBox.nftUri)).json();
+      emitToWebhook({
+        eventName: 'Auction Won',
+        winner: recoverBox.winner,
+        winningPrice: recoverBox.winningAmount,
+        nft: {
+          nftId: recoverBox.nftId,
+          nftImgUrl: uriData.image,
+          uri: recoverBox.nftUri,
+          name: uriData.name,
+        },
+      });
+      return true;
+    } else return false;
+  } catch (error) {
+    console.log(error);
+    emitToWebhook({
+      eventName: 'rpc-error',
+      rpcUrl: connection.rpcEndpoint,
+      rpcResponse: error.message,
+      event: 'RecoverBox',
+      winner: recoverBox.winner,
+    });
     return false;
   }
 };

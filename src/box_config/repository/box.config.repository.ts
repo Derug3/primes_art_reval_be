@@ -17,6 +17,6 @@ export class BoxConfigRepository extends Repository<BoxConfig> {
   }
 
   getAllDbBoxes() {
-    return this.find();
+    return this.find({ order: { boxId: 'ASC' } });
   }
 }
