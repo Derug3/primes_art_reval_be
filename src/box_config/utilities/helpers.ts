@@ -504,7 +504,7 @@ export const recoverBox = async (
 
   try {
     const accInfo = await connection.getAccountInfo(winningProof);
-    if (accInfo || accInfo.data) {
+    if (accInfo || accInfo?.data) {
       return true;
     }
     const authorityKey = new PublicKey(authority);
