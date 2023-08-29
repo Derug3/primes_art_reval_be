@@ -14,7 +14,7 @@ export class DiscordRole {
 export class User {
   @PrimaryColumn()
   @Field()
-  discordId: string;
+  id: string;
   @Column()
   @Field()
   discordUsername: string;
@@ -27,4 +27,7 @@ export class User {
   @Field({ nullable: true })
   @Column({ nullable: true })
   userTwitterName: string;
+  @Column({ nullable: true })
+  @Field({ nullable: true })
+  discordId: string;
 }
