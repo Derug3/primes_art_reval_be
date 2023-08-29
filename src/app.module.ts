@@ -34,7 +34,7 @@ import { SharedModule } from './shared/shared.module';
       inject: [SubscriberService],
       useFactory: (subscriberService: SubscriberService) => {
         return {
-          playground: true,
+          playground: false,
           autoSchemaFile: true,
           include: [BoxConfigModule, NftModule, UserModule, StatisticsModule],
           subscriptions: {
