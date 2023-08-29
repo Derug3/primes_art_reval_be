@@ -457,6 +457,7 @@ export class BoxConfigWorker {
       bidder: this.bidder,
       isWon: this.isWon,
       bidders: this.bidders,
+      boxId: this.box.boxId.toString(),
     };
   }
 }

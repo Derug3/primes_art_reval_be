@@ -5,7 +5,7 @@ import { BoxPool, BoxState } from '../types/box_config.types';
 @Entity()
 export class BoxConfig {
   @PrimaryGeneratedColumn('increment')
-  boxId: string;
+  boxId: number;
   @Column({ type: 'enum', enum: BoxPool })
   boxPool: BoxPool;
   @Column({ nullable: true })

@@ -120,7 +120,8 @@ export const parseAndValidatePlaceBidTx = async (
     bidders.push({
       bidAmount: box.activeBid.toNumber() / LAMPORTS_PER_SOL,
       walletAddress: bidder.toString(),
-      username: user?.discordUsername ?? bidder.slice(0, 6) + '...',
+      username:
+        user?.discordUsername ?? `${bidder.slice(0, 4)}...${bidder.slice(-4)}`,
     });
     try {
       const bidAmount = instructionsWithoutCb[0].data
@@ -276,7 +277,7 @@ export const parseBoxType = (boxType: BoxType) => {
 
 export const initBoxIx = async (
   boxAddress: PublicKey,
-  boxId: string,
+  boxId: number,
   box: BoxConfig,
   nft: Nft,
   connection: Connection,

@@ -70,7 +70,7 @@ export class NftService {
     }
   }
 
-  async getNonMinted(boxId: string, boxPool: BoxPool) {
+  async getNonMinted(boxId: number, boxPool: BoxPool) {
     const boxNfts = await this.nftRepository.find({
       where: { minted: false, isInBox: false, boxPool: boxPool as number },
     });
@@ -81,7 +81,7 @@ export class NftService {
       });
       return publicNfts;
     } else {
-      const boxIdNfts = boxNfts.filter((nft) => nft.boxId == boxId);
+      const boxIdNfts = boxNfts.filter((nft) => nft.boxId == boxId.toString());
 
       if (boxIdNfts.length > 0) {
         return boxIdNfts;

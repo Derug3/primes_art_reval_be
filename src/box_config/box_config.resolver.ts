@@ -36,7 +36,7 @@ export class BoxConfigResolver {
     @Args('signedMessage') signedMessage: string,
     @Args('authority') authority: string,
   ) {
-    return this.boxConfigService.deleteBox(boxId, signedMessage, authority);
+    return this.boxConfigService.deleteBox(+boxId, signedMessage, authority);
   }
 
   @Mutation(() => Boolean, { nullable: true })

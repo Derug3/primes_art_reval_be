@@ -9,7 +9,7 @@ export class SaveOrUpdateBoxConfig {
   async execute(boxConfigDto: BoxConfigInput) {
     try {
       const boxConfig = new BoxConfig();
-      boxConfig.boxId = boxConfigDto.boxId;
+      boxConfig.boxId = +boxConfigDto.boxId;
       boxConfig.bidIncrease = boxConfigDto.bidIncrease;
       boxConfig.boxPool = boxConfigDto.boxPool;
       boxConfig.bidStartPrice = boxConfigDto.bidStartPrice;

@@ -12,7 +12,7 @@ export class BoxConfigRepository extends Repository<BoxConfig> {
     return this.save(boxConfig);
   }
 
-  getBuyId(boxId: string) {
+  getBuyId(boxId: number) {
     return this.findOne({ where: { boxId } });
   }
 
