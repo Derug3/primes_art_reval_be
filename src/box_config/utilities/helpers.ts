@@ -276,7 +276,7 @@ export const parseBoxType = (boxType: BoxType) => {
 
 export const initBoxIx = async (
   boxAddress: PublicKey,
-  boxId: string,
+  boxId: number,
   box: BoxConfig,
   nft: Nft,
   connection: Connection,

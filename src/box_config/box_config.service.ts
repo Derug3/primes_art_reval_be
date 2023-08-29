@@ -142,10 +142,10 @@ export class BoxConfigService implements OnModuleInit {
     return configs;
   }
 
-  async deleteBox(boxId: string, signedMessage: string, authority: string) {
+  async deleteBox(boxId: number, signedMessage: string, authority: string) {
     try {
       const boxIndex = this.workers.findIndex(
-        (box) => box.box.boxId.toString() === boxId,
+        (box) => box.box.boxId.toString() === boxId.toString(),
       );
       if (boxIndex < 0) {
         throw new BadRequestException('Box not found!');
@@ -181,7 +181,7 @@ export class BoxConfigService implements OnModuleInit {
     return box.placeBid(serializedTx);
   }
 
-  checkBoxExistance(boxId: string) {
+  checkBoxExistance(boxId: number) {
     return this.workers.find((w) => w.box.boxId === boxId);
   }
 
