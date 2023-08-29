@@ -156,6 +156,7 @@ export const parseAndValidatePlaceBidTx = async (
           bidder: user?.discordUsername ?? bidder.toString(),
           userId: user?.id ?? '',
           userDiscordId: user?.discordId ?? '',
+          nftMint: instructionsWithoutCb[2]?.keys[2]?.pubkey?.toString() ?? '',
           nft: {
             nftId: nft.nftId,
             nftImgUrl: nft.nftImage,
