@@ -18,8 +18,6 @@ export const typeormConfig = (): TypeOrmModuleOptions => {
     username: process.env.DB_USERNAME!,
     password: process.env.DB_PASSWORD!,
     entities: [BoxConfig, Nft, RecoverBox, User, StatsEntity, PoolsConfig],
-    //TODO:only in dev mode!
-    // dropSchema: true,
     synchronize: true,
   };
 };
