@@ -28,6 +28,7 @@ import { User } from 'src/user/entity/user.entity';
 import { roles } from './rolesData';
 import { TOKEN_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
 import { RecoverBox } from 'src/recover_box/entity/recover_box.entity';
+import { writeFileSync } from 'fs';
 
 dotenv.config();
 export const sleep = async (ms: number): Promise<NodeJS.Timeout> => {
@@ -175,6 +176,8 @@ export const parseAndValidatePlaceBidTx = async (
     return existingBidProofAuthority;
   } catch (error) {
     console.log(error);
+
+    writeFileSync('./error.json', JSON.stringify(error));
 
     emitToWebhook({
       eventName: 'rpc-error',

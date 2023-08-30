@@ -49,10 +49,13 @@ export class BoxConfigWorker {
   isWon: boolean;
   hasResolved: boolean;
   bidders: Bidders[];
+  hasPreResolved: boolean;
 
   secondsExtending: number;
 
   logger = new Logger(BoxConfigWorker.name);
+
+  timer;
 
   additionalTimeout: number;
   cooldownAdditionalTimeout: number;
@@ -74,9 +77,11 @@ export class BoxConfigWorker {
     this.currentBid = 0;
     this.bidders = [];
     this.hasResolved = false;
+    this.hasPreResolved = false;
     this.additionalTimeout = 0;
     this.secondsExtending = 15;
     this.cooldownAdditionalTimeout = 5;
+
     this.start();
   }
 
@@ -157,15 +162,18 @@ export class BoxConfigWorker {
 
     await this.getBox();
 
-    await sleep(this.box.boxDuration * 1000);
+    this.timer = await sleep(this.box.boxDuration * 1000);
 
-    while (this.additionalTimeout > 0) {
-      let sleepAmount = this.additionalTimeout;
-      this.additionalTimeout = 0;
-      await sleep(sleepAmount * 1000);
+    if (!this.hasPreResolved) {
+      while (this.additionalTimeout > 0) {
+        let sleepAmount = this.additionalTimeout;
+        this.additionalTimeout = 0;
+        await sleep(sleepAmount * 1000);
+      }
+
+      await this.cooldown();
     }
-
-    await this.cooldown();
+    this.hasPreResolved = false;
   }
   async cooldown() {
     await this.resolveBox();
@@ -201,7 +209,7 @@ export class BoxConfigWorker {
       const box = await program.account.boxData.fetch(boxPda);
       let resolved = false;
       let hasTriedResolving = false;
-      // await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
+      await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       if ((box.winnerAddress || box.bidder) && !this.isWon) {
         resolved = await resolveBoxIx(
           boxPda,
@@ -289,7 +297,7 @@ export class BoxConfigWorker {
 
         this.activeNft = randomNft;
       } while (acknowledged === 0);
-      // await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
+      await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
 
       return true;
     } catch (error) {
@@ -416,6 +424,16 @@ export class BoxConfigWorker {
       }
 
       await this.getBox();
+      //HERE:
+      if (
+        (action === 1 || action === 3) &&
+        this.boxTimingState.state === BoxState.Active &&
+        remainingSeconds >= 5
+      ) {
+        this.hasPreResolved = true;
+        clearTimeout(this.timer);
+        await this.cooldown();
+      }
       await this.statsService.increaseBids();
       return true;
     } catch (error) {
