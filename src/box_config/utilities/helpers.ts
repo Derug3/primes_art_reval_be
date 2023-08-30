@@ -329,6 +329,8 @@ export const initBoxIx = async (
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
+    console.log(error);
+
     emitToWebhook({
       boxId: box.boxId,
       eventName: 'rpc-error',
