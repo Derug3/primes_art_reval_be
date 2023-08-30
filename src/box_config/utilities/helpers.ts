@@ -327,6 +327,7 @@ export const initBoxIx = async (
     return true;
   } catch (error) {
     emitToWebhook({
+      boxId: box.boxId,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
