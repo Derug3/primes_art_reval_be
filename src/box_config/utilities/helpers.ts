@@ -83,6 +83,7 @@ export const parseAndValidatePlaceBidTx = async (
   connection: Connection,
   nft: Nft,
 ): Promise<string | null> => {
+  let txSig;
   try {
     const transaction = Transaction.from(tx.data);
     let existingBidProofAuthority: string | null = null;
@@ -105,7 +106,7 @@ export const parseAndValidatePlaceBidTx = async (
 
     transaction.partialSign(authority);
 
-    const txSig = await connection.sendRawTransaction(
+    txSig = await connection.sendRawTransaction(
       transaction.serialize({ requireAllSignatures: false }),
     );
 
@@ -178,6 +179,7 @@ export const parseAndValidatePlaceBidTx = async (
     console.log(error);
 
     emitToWebhook({
+      txSig,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
@@ -197,7 +199,7 @@ export const resolveBoxIx = async (
     [primeBoxTreasurySeed, boxAddress.toBuffer()],
     program.programId,
   );
-
+  let txSig;
   try {
     const authority = getAuthorityAsSigner();
 
@@ -226,7 +228,7 @@ export const resolveBoxIx = async (
 
     tx.add(ix);
     tx.sign(authority);
-    const txSig = await connection.sendRawTransaction(tx.serialize());
+    txSig = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(txSig);
     emitToWebhook({
       eventName: 'Auction Won',
@@ -243,6 +245,7 @@ export const resolveBoxIx = async (
   } catch (error) {
     console.log(error);
     emitToWebhook({
+      txSig,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
@@ -338,6 +341,7 @@ export const initBoxIx = async (
 };
 
 export const claimNft = async (tx: any, connection: Connection) => {
+  let txSig;
   try {
     const transaction = Transaction.from(JSON.parse(tx).data);
 
@@ -349,7 +353,7 @@ export const claimNft = async (tx: any, connection: Connection) => {
 
     transaction.partialSign(signer);
 
-    const txSig = await connection.sendRawTransaction(transaction.serialize());
+    txSig = await connection.sendRawTransaction(transaction.serialize());
     await connection.confirmTransaction(txSig);
     const nonComputeBudgetIxs = transaction.instructions.filter(
       (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
@@ -363,6 +367,7 @@ export const claimNft = async (tx: any, connection: Connection) => {
     return true;
   } catch (error) {
     emitToWebhook({
+      txSig,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
@@ -503,7 +508,7 @@ export const recoverBox = async (
     [primeBoxWinnerSeed, Buffer.from(recoverBox.nftId)],
     program.programId,
   );
-
+  let txSig;
   try {
     const accInfo = await connection.getAccountInfo(winningProof);
     if (accInfo) {
@@ -532,12 +537,12 @@ export const recoverBox = async (
     }).compileToV0Message();
     const versionedTx = new VersionedTransaction(txMess);
     versionedTx.sign([getAuthorityAsSigner()]);
-    const txSig = await connection.sendRawTransaction(versionedTx.serialize());
+    txSig = await connection.sendRawTransaction(versionedTx.serialize());
     const txConfirmed = await connection.confirmTransaction(txSig);
     if (!txConfirmed.value.err) {
       const uriData = await (await fetch(recoverBox.nftUri)).json();
       emitToWebhook({
-        eventName: 'Auction Won',
+        eventName: 'Box Recovered',
         winner: recoverBox.winner,
         winningPrice: recoverBox.winningAmount,
         nft: {
@@ -552,6 +557,7 @@ export const recoverBox = async (
   } catch (error) {
     console.log(error);
     emitToWebhook({
+      txSig,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
