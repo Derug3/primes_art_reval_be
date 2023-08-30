@@ -54,6 +54,8 @@ export class BoxConfigWorker {
 
   logger = new Logger(BoxConfigWorker.name);
 
+  timer;
+
   additionalTimeout: number;
   cooldownAdditionalTimeout: number;
 
@@ -157,7 +159,7 @@ export class BoxConfigWorker {
 
     await this.getBox();
 
-    await sleep(this.box.boxDuration * 1000);
+    this.timer = await sleep(this.box.boxDuration * 1000);
 
     while (this.additionalTimeout > 0) {
       let sleepAmount = this.additionalTimeout;
@@ -416,6 +418,11 @@ export class BoxConfigWorker {
       }
 
       await this.getBox();
+      //HERE:
+      if (action === 1 || action === 3) {
+        clearTimeout(this.timer);
+        await this.cooldown();
+      }
       await this.statsService.increaseBids();
       return true;
     } catch (error) {
