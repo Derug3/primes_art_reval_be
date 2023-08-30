@@ -177,8 +177,6 @@ export const parseAndValidatePlaceBidTx = async (
   } catch (error) {
     console.log(error);
 
-    writeFileSync('./error.json', JSON.stringify(error));
-
     emitToWebhook({
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,

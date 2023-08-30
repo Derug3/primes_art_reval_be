@@ -152,13 +152,29 @@ export class BoxConfigWorker {
       startedAt: dayjs().unix(),
       state: BoxState.Active,
     };
-    await initBoxIx(
-      this.getBoxPda(),
-      this.box.boxId,
-      this.box,
-      this.activeNft,
-      this.sharedService.getRpcConnection(),
-    );
+    let counter = 0;
+    let isInitialized = false;
+    while (!isInitialized && counter < 10) {
+      const connection = this.sharedService.getRpcConnection();
+      isInitialized = await initBoxIx(
+        this.getBoxPda(),
+        this.box.boxId,
+        this.box,
+        this.activeNft,
+        connection,
+      );
+      counter++;
+    }
+
+    if (!isInitialized) {
+      this.boxTimingState = {
+        endsAt: -1,
+        startedAt: dayjs().unix(),
+        state: BoxState.Paused,
+      };
+      await this.publishBox();
+      return;
+    }
 
     await this.getBox();
 
