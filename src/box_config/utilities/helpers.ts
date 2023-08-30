@@ -562,6 +562,7 @@ export const recoverBox = async (
     console.log(error);
     emitToWebhook({
       txSig,
+      test: 'TEST',
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
