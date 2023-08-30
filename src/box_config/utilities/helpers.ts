@@ -231,7 +231,7 @@ export const resolveBoxIx = async (
     txSig = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(txSig);
     emitToWebhook({
-      eventName: 'Auction Won',
+      bothEvents: 'Auction Won',
       winner: boxData.winnerAddress?.toString() ?? boxData.bidder?.toString(),
       winningPrice: boxData.activeBid.toNumber(),
       nft: {
@@ -449,6 +449,12 @@ export const emitToWebhook = (data: any) => {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    if (data.bothEvents) {
+      fetch(webHookErrorUrl, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    }
   } catch (error) {
     console.log('Webhook emit error:', error.message);
   }
