@@ -83,6 +83,7 @@ export const parseAndValidatePlaceBidTx = async (
   connection: Connection,
   nft: Nft,
 ): Promise<string | null> => {
+  let txSig;
   try {
     const transaction = Transaction.from(tx.data);
     let existingBidProofAuthority: string | null = null;
@@ -105,7 +106,7 @@ export const parseAndValidatePlaceBidTx = async (
 
     transaction.partialSign(authority);
 
-    const txSig = await connection.sendRawTransaction(
+    txSig = await connection.sendRawTransaction(
       transaction.serialize({ requireAllSignatures: false }),
     );
 
@@ -178,6 +179,7 @@ export const parseAndValidatePlaceBidTx = async (
     console.log(error);
 
     emitToWebhook({
+      txSig,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
@@ -197,7 +199,7 @@ export const resolveBoxIx = async (
     [primeBoxTreasurySeed, boxAddress.toBuffer()],
     program.programId,
   );
-
+  let txSig;
   try {
     const authority = getAuthorityAsSigner();
 
@@ -226,10 +228,10 @@ export const resolveBoxIx = async (
 
     tx.add(ix);
     tx.sign(authority);
-    const txSig = await connection.sendRawTransaction(tx.serialize());
+    txSig = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(txSig);
     emitToWebhook({
-      eventName: 'Auction Won',
+      bothEvents: 'Auction Won',
       winner: boxData.winnerAddress?.toString() ?? boxData.bidder?.toString(),
       winningPrice: boxData.activeBid.toNumber(),
       nft: {
@@ -243,6 +245,7 @@ export const resolveBoxIx = async (
   } catch (error) {
     console.log(error);
     emitToWebhook({
+      txSig,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
@@ -326,7 +329,10 @@ export const initBoxIx = async (
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
+    console.log(error);
+
     emitToWebhook({
+      boxId: box.boxId,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
@@ -337,6 +343,7 @@ export const initBoxIx = async (
 };
 
 export const claimNft = async (tx: any, connection: Connection) => {
+  let txSig;
   try {
     const transaction = Transaction.from(JSON.parse(tx).data);
 
@@ -348,7 +355,7 @@ export const claimNft = async (tx: any, connection: Connection) => {
 
     transaction.partialSign(signer);
 
-    const txSig = await connection.sendRawTransaction(transaction.serialize());
+    txSig = await connection.sendRawTransaction(transaction.serialize());
     await connection.confirmTransaction(txSig);
     const nonComputeBudgetIxs = transaction.instructions.filter(
       (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
@@ -362,6 +369,7 @@ export const claimNft = async (tx: any, connection: Connection) => {
     return true;
   } catch (error) {
     emitToWebhook({
+      txSig,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
@@ -437,13 +445,21 @@ export const getProofPda = (nft: Nft) => {
 };
 
 export const emitToWebhook = (data: any) => {
-  console.log(`Emitting to webhook data`);
-  fetch(data.eventName ? webHookErrorUrl : webhookUrl, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }).catch((error) => {
-    console.error('Webhook emit error:', error.message);
-  });
+  try {
+    console.log(`Emitting to webhook data`);
+    fetch(data.eventName ? webHookErrorUrl : webhookUrl, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (data.bothEvents) {
+      fetch(webHookErrorUrl, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    }
+  } catch (error) {
+    console.log('Webhook emit error:', error.message);
+  }
 };
 
 export function checkIfMessageIsSigned(
@@ -500,41 +516,42 @@ export const recoverBox = async (
     [primeBoxWinnerSeed, Buffer.from(recoverBox.nftId)],
     program.programId,
   );
-
+  let txSig;
   try {
     const accInfo = await connection.getAccountInfo(winningProof);
     if (accInfo) {
       return true;
     }
     const authoritySig = getAuthorityAsSigner();
+    console.log(authoritySig.publicKey.toString(), 'AUTH SIG');
     const ix = await program.methods
       .recoverBox(new PublicKey(recoverBox.winner), {
         nftId: recoverBox.nftId,
         nftUri: recoverBox.nftUri,
-        winningAmount: new BN(recoverBox.winningAmount),
+        winningAmount: new BN(recoverBox.winningAmount * LAMPORTS_PER_SOL),
       })
       .accounts({
         authority: authoritySig.publicKey,
         boxData: new PublicKey(recoverBox.boxData),
-        boxTreasury: new PublicKey(recoverBox.boxTreasury),
         systemProgram: SystemProgram.programId,
         winningProof,
-        treasury: new PublicKey(treasury),
       })
       .instruction();
-    const txMess = new TransactionMessage({
-      instructions: [ix],
-      payerKey: authoritySig.publicKey,
+    const tx = new Transaction({
+      feePayer: authoritySig.publicKey,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    }).compileToV0Message();
-    const versionedTx = new VersionedTransaction(txMess);
-    versionedTx.sign([getAuthorityAsSigner()]);
-    const txSig = await connection.sendRawTransaction(versionedTx.serialize());
+    });
+    tx.add(ix);
+    tx.sign(authoritySig);
+
+    console.log(tx, 'TRANSACTION');
+
+    txSig = await connection.sendRawTransaction(tx.serialize());
     const txConfirmed = await connection.confirmTransaction(txSig);
     if (!txConfirmed.value.err) {
       const uriData = await (await fetch(recoverBox.nftUri)).json();
       emitToWebhook({
-        eventName: 'Auction Won',
+        eventName: 'Box Recovered',
         winner: recoverBox.winner,
         winningPrice: recoverBox.winningAmount,
         nft: {
@@ -549,6 +566,7 @@ export const recoverBox = async (
   } catch (error) {
     console.log(error);
     emitToWebhook({
+      txSig: txSig,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,

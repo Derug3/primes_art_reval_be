@@ -244,17 +244,7 @@ export type ArtReveal = {
           isSigner: true;
         },
         {
-          name: 'treasury';
-          isMut: true;
-          isSigner: false;
-        },
-        {
           name: 'winningProof';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'boxTreasury';
           isMut: true;
           isSigner: false;
         },
@@ -279,6 +269,17 @@ export type ArtReveal = {
     },
     {
       name: 'closeWinningDatas';
+      accounts: [
+        {
+          name: 'payer';
+          isMut: false;
+          isSigner: true;
+        },
+      ];
+      args: [];
+    },
+    {
+      name: 'closePreSaleProof';
       accounts: [
         {
           name: 'payer';
@@ -900,17 +901,7 @@ export const IDL: ArtReveal = {
           isSigner: true,
         },
         {
-          name: 'treasury',
-          isMut: true,
-          isSigner: false,
-        },
-        {
           name: 'winningProof',
-          isMut: true,
-          isSigner: false,
-        },
-        {
-          name: 'boxTreasury',
           isMut: true,
           isSigner: false,
         },
@@ -935,6 +926,17 @@ export const IDL: ArtReveal = {
     },
     {
       name: 'closeWinningDatas',
+      accounts: [
+        {
+          name: 'payer',
+          isMut: false,
+          isSigner: true,
+        },
+      ],
+      args: [],
+    },
+    {
+      name: 'closePreSaleProof',
       accounts: [
         {
           name: 'payer',

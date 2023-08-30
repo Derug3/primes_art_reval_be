@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThan } from 'typeorm';
@@ -9,13 +14,25 @@ import { BoxType } from 'src/enum/enums';
 import { fromBoxPoolString } from 'src/box_config/utilities/helpers';
 import { BoxPool } from 'src/box_config/types/box_config.types';
 @Injectable()
-export class NftService {
+export class NftService implements OnModuleInit {
   logger: Logger = new Logger(NftService.name);
   constructor(
     @InjectRepository(NftRepository)
     private readonly nftRepository: NftRepository,
     private readonly configService: ConfigService,
   ) {}
+  async onModuleInit() {
+    try {
+      const inBoxNfts = (
+        await this.nftRepository.find({
+          where: { isInBox: true },
+        })
+      ).map((nft) => ({ ...nft, isInBox: false }));
+      await this.nftRepository.save(inBoxNfts);
+    } catch (error) {
+      console.log(error);
+    }
+  }
   async storeNfts(signedMessage: string, authority: string) {
     try {
       const cdnUrl = this.configService.get<string>('NFT_CND_URL');

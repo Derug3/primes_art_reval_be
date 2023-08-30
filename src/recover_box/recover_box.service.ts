@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { recoverBox } from 'src/box_config/utilities/helpers';
 import { SharedService } from 'src/shared/shared.service';
@@ -26,7 +26,7 @@ export class RecoverBoxService {
     this.logger.log(`Deleted boxRecover data with id: ${boxId}`);
   }
 
-  @Cron('* * * * *')
+  @Cron(CronExpression.EVERY_30_SECONDS)
   async recoverFailedBoxes() {
     this.logger.log(`Executing failed boxes cron.`);
     try {
