@@ -540,6 +540,7 @@ export const recoverBox = async (
     });
     tx.add(ix);
     tx.sign(authoritySig);
+
     txSig = await connection.sendRawTransaction(tx.serialize());
     const txConfirmed = await connection.confirmTransaction(txSig);
     if (!txConfirmed.value.err) {
@@ -560,8 +561,7 @@ export const recoverBox = async (
   } catch (error) {
     console.log(error);
     emitToWebhook({
-      txSig,
-      test: 'TEST',
+      txSig: txSig,
       eventName: 'rpc-error',
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
