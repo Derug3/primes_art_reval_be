@@ -419,7 +419,11 @@ export class BoxConfigWorker {
 
       await this.getBox();
       //HERE:
-      if (action === 1 || action === 3) {
+      if (
+        (action === 1 || action === 3) &&
+        this.boxTimingState.state === BoxState.Active &&
+        remainingSeconds >= 5
+      ) {
         clearTimeout(this.timer);
         await this.cooldown();
       }
