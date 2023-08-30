@@ -201,7 +201,7 @@ export class BoxConfigWorker {
       const box = await program.account.boxData.fetch(boxPda);
       let resolved = false;
       let hasTriedResolving = false;
-      await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
+      // await this.nftService.toggleNftBoxState(this.activeNft.nftId, false);
       if ((box.winnerAddress || box.bidder) && !this.isWon) {
         resolved = await resolveBoxIx(
           boxPda,
@@ -289,7 +289,7 @@ export class BoxConfigWorker {
 
         this.activeNft = randomNft;
       } while (acknowledged === 0);
-      await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
+      // await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
 
       return true;
     } catch (error) {
