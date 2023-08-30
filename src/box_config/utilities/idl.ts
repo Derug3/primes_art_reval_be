@@ -246,7 +246,7 @@ export type ArtReveal = {
         {
           name: 'winningProof';
           isMut: true;
-          isSigner: true;
+          isSigner: false;
         },
         {
           name: 'systemProgram';
@@ -903,7 +903,7 @@ export const IDL: ArtReveal = {
         {
           name: 'winningProof',
           isMut: true,
-          isSigner: true,
+          isSigner: false,
         },
         {
           name: 'systemProgram',
