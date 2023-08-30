@@ -437,15 +437,13 @@ export const getProofPda = (nft: Nft) => {
 };
 
 export const emitToWebhook = (data: any) => {
-  try {
-    console.log(`Emitting to webhook data`);
-    fetch(data.eventName ? webHookErrorUrl : webhookUrl, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  } catch (error) {
-    console.log('Webhook emit error:', error.message);
-  }
+  console.log(`Emitting to webhook data`);
+  fetch(data.eventName ? webHookErrorUrl : webhookUrl, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }).catch((error) => {
+    console.error('Webhook emit error:', error.message);
+  });
 };
 
 export function checkIfMessageIsSigned(

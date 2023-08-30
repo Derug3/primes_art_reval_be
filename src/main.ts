@@ -3,7 +3,9 @@ import { AppModule } from './app.module';
 import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    abortOnError: false,
+  });
   process.setMaxListeners(1500);
 
   app.enableCors({
