@@ -89,7 +89,6 @@ export class BoxConfigWorker {
     this.logger.debug(`Starting box ${this.box.boxId}`);
     this.currentBid = 0;
     this.bidsCount = 0;
-    this.hasPreResolved = false;
     this.bidder = undefined;
     this.isWon = false;
     this.hasResolved = false;
@@ -174,6 +173,7 @@ export class BoxConfigWorker {
 
       await this.cooldown();
     }
+    this.hasPreResolved = false;
   }
   async cooldown() {
     await this.resolveBox();
