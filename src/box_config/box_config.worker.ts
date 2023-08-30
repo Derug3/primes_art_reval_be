@@ -386,10 +386,20 @@ export class BoxConfigWorker {
           "Invalid role. You don't have permission to bid on this box!",
         );
       }
+      const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
+      //HERE
+      if ((action === 0 || action === 2) && remainingSeconds <= 2) {
+        throw new BadRequestException('Box expired!');
+      }
+      //HERE
+      if (
+        this.boxTimingState.state === BoxState.Cooldown &&
+        remainingSeconds <= 2
+      ) {
+        throw new BadRequestException('Box expired');
+      }
 
       this.bidsCount++;
-
-      const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
 
       await this.getBox();
       const rpcConnection = this.sharedService.getRpcConnection();
