@@ -466,7 +466,9 @@ export class BoxConfigWorker {
         clearTimeout(this.timer);
         await this.cooldown();
       }
-      await this.statsService.increaseBids();
+      if (action == 0 || action == 2) {
+        await this.statsService.increaseBids();
+      }
       return true;
     } catch (error) {
       throw new BadRequestException(error.message);
