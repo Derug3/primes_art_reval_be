@@ -534,14 +534,13 @@ export const recoverBox = async (
         winningProof,
       })
       .instruction();
-    const txMess = new TransactionMessage({
-      instructions: [ix],
-      payerKey: authoritySig.publicKey,
+    const tx = new Transaction({
+      feePayer: authoritySig.publicKey,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    }).compileToV0Message();
-    const versionedTx = new VersionedTransaction(txMess);
-    versionedTx.sign([getAuthorityAsSigner()]);
-    txSig = await connection.sendRawTransaction(versionedTx.serialize());
+    });
+    tx.add(ix);
+    tx.sign(authoritySig);
+    txSig = await connection.sendRawTransaction(tx.serialize());
     const txConfirmed = await connection.confirmTransaction(txSig);
     if (!txConfirmed.value.err) {
       const uriData = await (await fetch(recoverBox.nftUri)).json();
