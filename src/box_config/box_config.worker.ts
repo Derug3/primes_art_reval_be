@@ -49,6 +49,7 @@ export class BoxConfigWorker {
   isWon: boolean;
   hasResolved: boolean;
   bidders: Bidders[];
+  hasPreResolved: boolean;
 
   secondsExtending: number;
 
@@ -76,9 +77,11 @@ export class BoxConfigWorker {
     this.currentBid = 0;
     this.bidders = [];
     this.hasResolved = false;
+    this.hasPreResolved = false;
     this.additionalTimeout = 0;
     this.secondsExtending = 15;
     this.cooldownAdditionalTimeout = 5;
+
     this.start();
   }
 
@@ -86,6 +89,7 @@ export class BoxConfigWorker {
     this.logger.debug(`Starting box ${this.box.boxId}`);
     this.currentBid = 0;
     this.bidsCount = 0;
+    this.hasPreResolved = false;
     this.bidder = undefined;
     this.isWon = false;
     this.hasResolved = false;
@@ -161,13 +165,15 @@ export class BoxConfigWorker {
 
     this.timer = await sleep(this.box.boxDuration * 1000);
 
-    while (this.additionalTimeout > 0) {
-      let sleepAmount = this.additionalTimeout;
-      this.additionalTimeout = 0;
-      await sleep(sleepAmount * 1000);
-    }
+    if (!this.hasPreResolved) {
+      while (this.additionalTimeout > 0) {
+        let sleepAmount = this.additionalTimeout;
+        this.additionalTimeout = 0;
+        await sleep(sleepAmount * 1000);
+      }
 
-    await this.cooldown();
+      await this.cooldown();
+    }
   }
   async cooldown() {
     await this.resolveBox();
@@ -424,6 +430,7 @@ export class BoxConfigWorker {
         this.boxTimingState.state === BoxState.Active &&
         remainingSeconds >= 5
       ) {
+        this.hasPreResolved = true;
         clearTimeout(this.timer);
         await this.cooldown();
       }
