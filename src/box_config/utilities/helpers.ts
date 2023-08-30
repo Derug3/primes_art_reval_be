@@ -526,7 +526,7 @@ export const recoverBox = async (
       .recoverBox(new PublicKey(recoverBox.winner), {
         nftId: recoverBox.nftId,
         nftUri: recoverBox.nftUri,
-        winningAmount: new BN(recoverBox.winningAmount),
+        winningAmount: new BN(recoverBox.winningAmount * LAMPORTS_PER_SOL),
       })
       .accounts({
         authority: authoritySig.publicKey,
