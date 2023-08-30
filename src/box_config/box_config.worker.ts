@@ -233,6 +233,9 @@ export class BoxConfigWorker {
           this.activeNft,
         );
         hasTriedResolving = true;
+        await this.statsService.increaseSales(
+          box.activeBid.toNumber() / LAMPORTS_PER_SOL,
+        );
       }
       if (!this.isWon && !this.hasResolved && !resolved) {
         this.logger.warn('Non resolved NFT');
@@ -449,13 +452,16 @@ export class BoxConfigWorker {
         };
       }
 
-      await this.getBox();
+      const activeBid = await this.getBox();
       //HERE:
       if (
         (action === 1 || action === 3) &&
         this.boxTimingState.state === BoxState.Active &&
         remainingSeconds >= 5
       ) {
+        await this.statsService.increaseSales(
+          activeBid.toNumber() / LAMPORTS_PER_SOL,
+        );
         this.hasPreResolved = true;
         clearTimeout(this.timer);
         await this.cooldown();
@@ -481,12 +487,11 @@ export class BoxConfigWorker {
         (boxData.bidder && this.boxTimingState.state === BoxState.Cooldown)
       ) {
         this.isWon = true;
+
         await this.nftService.updateNft(this.activeNft.nftId, true);
-        await this.statsService.increaseSales(
-          boxData.activeBid.toNumber() / LAMPORTS_PER_SOL,
-        );
       }
       await this.publishBox();
+      return boxData.activeBid;
     } catch (error) {
       console.log(error);
     }

@@ -6,12 +6,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, MoreThan } from 'typeorm';
+import { In, IsNull, MoreThan } from 'typeorm';
 import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 import { chunk } from 'lodash';
 import { BoxType } from 'src/enum/enums';
-import { fromBoxPoolString } from 'src/box_config/utilities/helpers';
+import { fromBoxPoolString, program } from 'src/box_config/utilities/helpers';
 import { BoxPool } from 'src/box_config/types/box_config.types';
 @Injectable()
 export class NftService implements OnModuleInit {
@@ -206,6 +206,29 @@ export class NftService implements OnModuleInit {
       return true;
     } catch (error) {
       throw new BadRequestException(error.message);
+    }
+  }
+
+  async syncData() {
+    try {
+      const allProofs = (await program.account.winningProof.all()).map(
+        (acc) => acc.account.nftId,
+      );
+      const allNfts = (
+        await this.nftRepository.find({
+          where: { nftId: In(allProofs) },
+        })
+      ).filter((nft) => !nft.minted);
+      this.logger.warn(`Found ${allNfts.length} non synced NFTS`);
+
+      await this.nftRepository.save(
+        allNfts.map((n) => ({ ...n, minted: true })),
+      );
+      this.logger.log('Synced data');
+      return true;
+    } catch (error) {
+      console.log(error);
+      throw new BadRequestException('Error');
     }
   }
 }
