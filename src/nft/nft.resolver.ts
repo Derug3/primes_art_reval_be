@@ -46,4 +46,9 @@ export class NftResolver {
   ) {
     return this.nftService.deleteAllNfts(signedMessage, authority);
   }
+
+  @Mutation(() => Boolean)
+  syncData() {
+    return this.nftService.syncData();
+  }
 }
