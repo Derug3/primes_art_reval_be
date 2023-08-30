@@ -530,10 +530,8 @@ export const recoverBox = async (
       .accounts({
         authority: authoritySig.publicKey,
         boxData: new PublicKey(recoverBox.boxData),
-        boxTreasury: new PublicKey(recoverBox.boxTreasury),
         systemProgram: SystemProgram.programId,
         winningProof,
-        treasury: new PublicKey(treasury),
       })
       .instruction();
     const txMess = new TransactionMessage({
