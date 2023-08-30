@@ -521,6 +521,7 @@ export const recoverBox = async (
       return true;
     }
     const authoritySig = getAuthorityAsSigner();
+    console.log(authoritySig.publicKey.toString(), 'AUTH SIG');
     const ix = await program.methods
       .recoverBox(new PublicKey(recoverBox.winner), {
         nftId: recoverBox.nftId,
@@ -540,6 +541,8 @@ export const recoverBox = async (
     });
     tx.add(ix);
     tx.sign(authoritySig);
+
+    console.log(tx, 'TRANSACTION');
 
     txSig = await connection.sendRawTransaction(tx.serialize());
     const txConfirmed = await connection.confirmTransaction(txSig);
