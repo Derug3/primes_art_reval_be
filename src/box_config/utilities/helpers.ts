@@ -646,6 +646,8 @@ export async function checkIfProofPdaExists(
   connection: Connection,
 ) {
   try {
+    console.log('Checking pda existance');
+
     const [winningProofAddress] = PublicKey.findProgramAddressSync(
       [Buffer.from(primeBoxWinnerSeed), Buffer.from(nftId)],
       new PublicKey(programId),
