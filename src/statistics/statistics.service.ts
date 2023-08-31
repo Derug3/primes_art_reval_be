@@ -171,6 +171,7 @@ export class StatisticsService implements OnModuleInit {
     try {
       const stats = await this.statsRepo.find();
       stats[0].totalSales = totalSales;
+      await this.statsRepo.save(stats);
     } catch (error) {
       console.log(error);
     }
