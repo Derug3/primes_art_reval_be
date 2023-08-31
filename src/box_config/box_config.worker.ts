@@ -242,7 +242,7 @@ export class BoxConfigWorker {
         await this.nftService.updateNft(this.activeNft.nftId, false);
       } else {
         this.logger.log('Resolved NFT');
-        await this.nftService.updateNft(this.activeNft.nftId, true);
+        // await this.nftService.updateNft(this.activeNft.nftId, true);
       }
 
       await this.getBox();
@@ -493,7 +493,7 @@ export class BoxConfigWorker {
       ) {
         this.isWon = true;
 
-        await this.nftService.updateNft(this.activeNft.nftId, true);
+        // await this.nftService.updateNft(this.activeNft.nftId, true);
       }
       await this.publishBox();
       return boxData.activeBid;
