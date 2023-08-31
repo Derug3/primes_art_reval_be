@@ -468,10 +468,6 @@ export class BoxConfigWorker {
         this.boxTimingState.state === BoxState.Active &&
         remainingSeconds >= 5
       ) {
-        await this.statsService.increaseSales(
-          activeBid.toNumber() / LAMPORTS_PER_SOL,
-        );
-
         this.hasPreResolved = true;
         clearTimeout(this.timer);
         this.cooldown();
@@ -479,6 +475,12 @@ export class BoxConfigWorker {
 
       if (action === 0 || action === 2) {
         await this.statsService.increaseBids();
+      }
+
+      if (action === 1 || action === 3) {
+        await this.statsService.increaseSales(
+          activeBid.toNumber() / LAMPORTS_PER_SOL,
+        );
       }
 
       if (action === 1 || action === 3) {
