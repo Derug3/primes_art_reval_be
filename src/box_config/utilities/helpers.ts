@@ -294,6 +294,7 @@ export const initBoxIx = async (
   box: BoxConfig,
   nft: Nft,
   connection: Connection,
+  counter: number,
 ) => {
   try {
     const authority = getAuthorityAsSigner();
@@ -339,6 +340,7 @@ export const initBoxIx = async (
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
       event: 'InitBox',
+      counter,
     });
     return false;
   }

@@ -106,6 +106,7 @@ export class BoxConfigWorker {
       await sleep(this.box.initialDelay * 1000);
       await this.boxConfigRepo.save({ ...this.box, initialDelay: null });
     }
+
     this.secondsExtending = await this.statsService.getStatsExtending();
     if (this.box.boxId) {
       const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
@@ -162,7 +163,9 @@ export class BoxConfigWorker {
         this.box,
         this.activeNft,
         connection,
+        counter,
       );
+
       counter++;
     }
 
