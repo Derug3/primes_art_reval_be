@@ -252,15 +252,15 @@ export class BoxConfigWorker {
           [primeBoxTreasurySeed, boxAddress.toBuffer()],
           program.programId,
         );
-        // TODO:check
+
         await this.recoverBoxService.saveFailedBox({
           boxData: boxAddress.toString(),
           failedAt: new Date(),
           id: v4(),
           nftId: this.activeNft.nftId,
           nftUri: this.activeNft.nftUri,
-          winner: this.bidder,
-          winningAmount: this.currentBid,
+          winner: box.bidder.toString(),
+          winningAmount: box.activeBid.toNumber(),
           boxTreasury: boxTreasury.toString(),
         });
       }
