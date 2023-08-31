@@ -640,3 +640,20 @@ export async function refundBox(connection: Connection) {
     console.log(error);
   }
 }
+
+export async function checkIfProofPdaExists(
+  nftId: string,
+  connection: Connection,
+) {
+  try {
+    const [winningProofAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from(primeBoxWinnerSeed), Buffer.from(nftId)],
+      new PublicKey(programId),
+    );
+    const accInfo = await connection.getAccountInfo(winningProofAddress);
+    if (accInfo) return true;
+    return false;
+  } catch (error) {
+    return true;
+  }
+}

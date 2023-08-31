@@ -10,6 +10,7 @@ import {
   BoxTimigState,
 } from './types/box_config.types';
 import {
+  checkIfProofPdaExists,
   checkUserRole,
   getProofPda,
   getUserMintPassNfts,
@@ -306,7 +307,6 @@ export class BoxConfigWorker {
         nfts = nonShuffled;
       }
       let acknowledged = 0;
-
       this.logger.log(`Box setup with available NFTs: ${nfts.length}`);
       if (nfts.length === 0) return false;
       do {
@@ -316,6 +316,11 @@ export class BoxConfigWorker {
           randomNft.nftId,
           JSON.stringify(randomNft),
         );
+        const exists = await checkIfProofPdaExists(
+          randomNft.nftId,
+          this.sharedService.getRpcConnection(),
+        );
+        if (exists) continue;
 
         this.activeNft = randomNft;
       } while (acknowledged === 0);
