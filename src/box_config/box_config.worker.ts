@@ -411,8 +411,8 @@ export class BoxConfigWorker {
       }
 
       this.bidsCount++;
-
-      await this.getBox();
+      //HERE:test
+      // await this.getBox();
       const rpcConnection = this.sharedService.getRpcConnection();
 
       const existingAuth = await parseAndValidatePlaceBidTx(
@@ -430,8 +430,8 @@ export class BoxConfigWorker {
           overbidden: existingAuth,
         });
       }
-
-      await this.getBox();
+      //HERE:test
+      // await this.getBox();
       if (
         remainingSeconds < this.secondsExtending &&
         this.boxTimingState.state === BoxState.Active &&
