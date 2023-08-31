@@ -466,8 +466,11 @@ export class BoxConfigWorker {
         clearTimeout(this.timer);
         await this.cooldown();
       }
-      if (action == 0 || action == 2) {
+      if (action === 0 || action === 2) {
         await this.statsService.increaseBids();
+      }
+      if (action === 1 || action === 3) {
+        await this.nftService.updateNft(this.activeNft.nftId, true);
       }
       return true;
     } catch (error) {
