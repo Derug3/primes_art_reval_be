@@ -13,6 +13,7 @@ import { chunk } from 'lodash';
 import { BoxType } from 'src/enum/enums';
 import { fromBoxPoolString, program } from 'src/box_config/utilities/helpers';
 import { BoxPool } from 'src/box_config/types/box_config.types';
+import { StatisticsService } from 'src/statistics/statistics.service';
 @Injectable()
 export class NftService implements OnModuleInit {
   logger: Logger = new Logger(NftService.name);
@@ -20,6 +21,7 @@ export class NftService implements OnModuleInit {
     @InjectRepository(NftRepository)
     private readonly nftRepository: NftRepository,
     private readonly configService: ConfigService,
+    private readonly statsService: StatisticsService,
   ) {}
   async onModuleInit() {
     try {
@@ -220,6 +222,8 @@ export class NftService implements OnModuleInit {
         })
       ).filter((nft) => !nft.minted);
       this.logger.warn(`Found ${allNfts.length} non synced NFTS`);
+
+      await this.statsService.setStats(allProofs.length);
 
       await this.nftRepository.save(
         allNfts.map((n) => ({ ...n, minted: true })),

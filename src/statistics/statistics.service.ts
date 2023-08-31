@@ -167,4 +167,12 @@ export class StatisticsService implements OnModuleInit {
       throw new BadRequestException(error.message);
     }
   }
+  async setStats(totalSales: number) {
+    try {
+      const stats = await this.statsRepo.find();
+      stats[0].totalSales = totalSales;
+    } catch (error) {
+      console.log(error);
+    }
+  }
 }
