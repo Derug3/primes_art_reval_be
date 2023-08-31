@@ -6,6 +6,7 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
 } from '@solana/web3.js';
@@ -29,6 +30,7 @@ import { roles } from './rolesData';
 import { TOKEN_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
 import { RecoverBox } from 'src/recover_box/entity/recover_box.entity';
 import { writeFileSync } from 'fs';
+import { chunk } from 'lodash';
 
 dotenv.config();
 export const sleep = async (ms: number): Promise<NodeJS.Timeout> => {
@@ -576,3 +578,63 @@ export const recoverBox = async (
     return false;
   }
 };
+
+export async function refundBox(connection: Connection) {
+  try {
+    const auth = getAuthorityAsSigner();
+    const allBoxes = await program.account.boxData.all();
+    const instructions: TransactionInstruction[] = [];
+    await Promise.all(
+      allBoxes.map(async (ab) => {
+        const [boxTreasury] = PublicKey.findProgramAddressSync(
+          [primeBoxTreasurySeed, ab.publicKey.toBuffer()],
+          program.programId,
+        );
+        const recoverSolIx = await program.methods
+          .recoverSol(ab.account.activeBid)
+          .accounts({
+            boxData: ab.publicKey,
+            boxTreasury,
+            receiver: ab.account.winnerAddress ?? ab.account.bidder,
+            systemProgram: SystemProgram.programId,
+          })
+          .instruction();
+        instructions.push(recoverSolIx);
+        if (ab.account.nftBidProof) {
+          const deleteBidProof = await program.methods
+            .closePreSaleProof()
+            .remainingAccounts([
+              {
+                isSigner: false,
+                isWritable: true,
+                pubkey: ab.account.nftBidProof,
+              },
+            ])
+            .instruction();
+
+          instructions.push(deleteBidProof);
+        }
+      }),
+    );
+    const chunkedIxs = chunk(instructions, 2);
+    for (const ixChunk of chunkedIxs) {
+      try {
+        const tx = new Transaction({
+          feePayer: auth.publicKey,
+          recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        });
+        ixChunk.forEach((ix) => tx.add(ix));
+        tx.sign(auth);
+        await connection.sendRawTransaction(tx.serialize());
+      } catch (error) {
+        emitToWebhook({
+          action: 'Recover sol',
+          wallet: ixChunk[0].keys[2].pubkey.toString(),
+        });
+        console.log(error);
+      }
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}

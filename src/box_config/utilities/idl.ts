@@ -289,6 +289,49 @@ export type ArtReveal = {
       ];
       args: [];
     },
+    {
+      name: 'closeBoxConfig';
+      accounts: [
+        {
+          name: 'payer';
+          isMut: false;
+          isSigner: true;
+        },
+      ];
+      args: [];
+    },
+    {
+      name: 'recoverSol';
+      accounts: [
+        {
+          name: 'boxData';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'boxTreasury';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'receiver';
+          isMut: false;
+          isSigner: false;
+          docs: ['CHECK'];
+        },
+        {
+          name: 'systemProgram';
+          isMut: false;
+          isSigner: false;
+        },
+      ];
+      args: [
+        {
+          name: 'amount';
+          type: 'u64';
+        },
+      ];
+    },
   ];
   accounts: [
     {
@@ -945,6 +988,49 @@ export const IDL: ArtReveal = {
         },
       ],
       args: [],
+    },
+    {
+      name: 'closeBoxConfig',
+      accounts: [
+        {
+          name: 'payer',
+          isMut: false,
+          isSigner: true,
+        },
+      ],
+      args: [],
+    },
+    {
+      name: 'recoverSol',
+      accounts: [
+        {
+          name: 'boxData',
+          isMut: false,
+          isSigner: false,
+        },
+        {
+          name: 'boxTreasury',
+          isMut: false,
+          isSigner: false,
+        },
+        {
+          name: 'receiver',
+          isMut: false,
+          isSigner: false,
+          docs: ['CHECK'],
+        },
+        {
+          name: 'systemProgram',
+          isMut: false,
+          isSigner: false,
+        },
+      ],
+      args: [
+        {
+          name: 'amount',
+          type: 'u64',
+        },
+      ],
     },
   ],
   accounts: [
