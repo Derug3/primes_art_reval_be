@@ -294,6 +294,7 @@ export const initBoxIx = async (
   box: BoxConfig,
   nft: Nft,
   connection: Connection,
+  counter: number,
 ) => {
   try {
     const authority = getAuthorityAsSigner();
@@ -339,6 +340,7 @@ export const initBoxIx = async (
       rpcUrl: connection.rpcEndpoint,
       rpcResponse: error.message,
       event: 'InitBox',
+      counter,
     });
     return false;
   }
@@ -636,5 +638,22 @@ export async function refundBox(connection: Connection) {
     }
   } catch (error) {
     console.log(error);
+  }
+}
+
+export async function checkIfProofPdaExists(
+  nftId: string,
+  connection: Connection,
+) {
+  try {
+    const [winningProofAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from(primeBoxWinnerSeed), Buffer.from(nftId)],
+      new PublicKey(programId),
+    );
+    const accInfo = await connection.getAccountInfo(winningProofAddress);
+    if (accInfo) return true;
+    return false;
+  } catch (error) {
+    return true;
   }
 }
