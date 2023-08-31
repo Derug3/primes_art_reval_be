@@ -453,6 +453,7 @@ export class BoxConfigWorker {
       }
 
       const activeBid = await this.getBox();
+
       //HERE:
       if (
         (action === 1 || action === 3) &&
@@ -462,16 +463,20 @@ export class BoxConfigWorker {
         await this.statsService.increaseSales(
           activeBid.toNumber() / LAMPORTS_PER_SOL,
         );
+
         this.hasPreResolved = true;
         clearTimeout(this.timer);
-        await this.cooldown();
+        this.cooldown();
       }
+
       if (action === 0 || action === 2) {
         await this.statsService.increaseBids();
       }
+
       if (action === 1 || action === 3) {
         await this.nftService.updateNft(this.activeNft.nftId, true);
       }
+
       return true;
     } catch (error) {
       throw new BadRequestException(error.message);
