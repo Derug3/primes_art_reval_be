@@ -11,9 +11,15 @@ import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 import { chunk } from 'lodash';
 
-import { fromBoxPoolString, program } from 'src/box_config/utilities/helpers';
+import {
+  fromBoxPoolString,
+  primeBoxWinnerSeed,
+  program,
+} from 'src/box_config/utilities/helpers';
 import { BoxPool } from 'src/box_config/types/box_config.types';
 import { StatisticsService } from 'src/statistics/statistics.service';
+import { PublicKey } from '@solana/web3.js';
+import { SharedService } from 'src/shared/shared.service';
 @Injectable()
 export class NftService implements OnModuleInit {
   logger: Logger = new Logger(NftService.name);
@@ -22,6 +28,7 @@ export class NftService implements OnModuleInit {
     private readonly nftRepository: NftRepository,
     private readonly configService: ConfigService,
     private readonly statsService: StatisticsService,
+    private readonly sharedService: SharedService,
   ) {}
   async onModuleInit() {
     try {
@@ -216,12 +223,23 @@ export class NftService implements OnModuleInit {
       const allProofs = (await program.account.winningProof.all()).map(
         (acc) => acc.account.nftId,
       );
-      const allNfts = (
-        await this.nftRepository.find({
-          where: { nftId: In(allProofs) },
-        })
-      ).filter((nft) => !nft.minted);
-      this.logger.warn(`Found ${allNfts.length} non synced NFTS`);
+      const connection = this.sharedService.getRpcConnection();
+      const allNfts = (await this.nftRepository.find()).filter(
+        (nft) => nft.minted,
+      );
+      let changedCount = 0;
+      for (const nft of allNfts) {
+        const [winningProof] = PublicKey.findProgramAddressSync(
+          [primeBoxWinnerSeed, Buffer.from(nft.nftId)],
+          program.programId,
+        );
+        const accInfo = await connection.getAccountInfo(winningProof);
+        if (!accInfo) {
+          changedCount++;
+          await this.nftRepository.save({ ...nft, minted: false });
+        }
+      }
+      this.logger.warn(`Found ${changedCount} non synced NFTS`);
 
       await this.statsService.setStats(allProofs.length);
 
