@@ -5,13 +5,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 import { ConfigModule } from '@nestjs/config';
-import { StatisticsService } from 'src/statistics/statistics.service';
+
+import { StatisticsModule } from 'src/statistics/statistics.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forFeature([Nft]),
-    StatisticsService,
+    StatisticsModule,
   ],
+
   providers: [NftResolver, NftService, NftRepository],
   exports: [NftService],
 })
