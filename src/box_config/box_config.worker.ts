@@ -22,6 +22,7 @@ import {
   programId,
   resolveBoxIx,
   sleep,
+  tryInitBox,
 } from './utilities/helpers';
 import { v4 } from 'uuid';
 import Redis from 'ioredis';
@@ -88,112 +89,148 @@ export class BoxConfigWorker {
 
   async start() {
     this.logger.debug(`Starting box ${this.box.boxId}`);
-    this.currentBid = 0;
-    this.bidsCount = 0;
-    this.bidder = undefined;
-    this.isWon = false;
-    this.hasResolved = false;
-    this.bidders = [];
-    this.additionalTimeout = 0;
-    this.cooldownAdditionalTimeout = 0;
 
-    if (this.box.initialDelay) {
-      this.boxTimingState = {
-        endsAt: dayjs().add(this.box.initialDelay, 'seconds').unix(),
-        startedAt: dayjs().unix(),
-        state: BoxState.Paused,
-      };
-      await this.publishBox();
-      await sleep(this.box.initialDelay * 1000);
-      await this.boxConfigRepo.save({ ...this.box, initialDelay: null });
-    }
+    const initBoxData = await tryInitBox(this.getBoxPda());
 
-    this.secondsExtending = await this.statsService.getStatsExtending();
-    if (this.box.boxId) {
-      const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
+    if (!initBoxData) {
+      this.currentBid = 0;
+      this.bidsCount = 0;
+      this.bidder = undefined;
+      this.isWon = false;
+      this.hasResolved = false;
+      this.bidders = [];
+      this.additionalTimeout = 0;
+      this.cooldownAdditionalTimeout = 0;
 
-      if (!newBoxState || newBoxState.boxState === BoxState.Removed) {
-        this.logger.debug(`Stopping box with id ${this.box.boxId}`);
+      if (this.box.initialDelay) {
+        this.boxTimingState = {
+          endsAt: dayjs().add(this.box.initialDelay, 'seconds').unix(),
+          startedAt: dayjs().unix(),
+          state: BoxState.Paused,
+        };
+        await this.publishBox();
+        await sleep(this.box.initialDelay * 1000);
+        await this.boxConfigRepo.save({ ...this.box, initialDelay: null });
+      }
+
+      this.secondsExtending = await this.statsService.getStatsExtending();
+      if (this.box.boxId) {
+        const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
+
+        if (!newBoxState || newBoxState.boxState === BoxState.Removed) {
+          this.logger.debug(`Stopping box with id ${this.box.boxId}`);
+          this.boxTimingState = {
+            endsAt: -1,
+            startedAt: dayjs().unix(),
+            state: BoxState.Removed,
+          };
+          await this.publishBox();
+          return;
+        }
+        if (newBoxState.boxState === BoxState.Paused) {
+          this.boxTimingState = {
+            endsAt: dayjs().add(newBoxState.boxPause, 'seconds').unix(),
+            startedAt: dayjs().unix(),
+            state: BoxState.Paused,
+          };
+          await this.publishBox();
+
+          await this.boxConfigRepo.save({
+            ...this.box,
+            boxState: BoxState.Active,
+          });
+          await sleep(newBoxState.boxPause * 1000);
+        }
+        this.box = newBoxState;
+      }
+      const boxSetup = await this.setupBox();
+      this.logger.debug(`Box setup successfully:${boxSetup}`);
+      if (!boxSetup) {
         this.boxTimingState = {
           endsAt: -1,
-          startedAt: dayjs().unix(),
+          startedAt: -1,
           state: BoxState.Removed,
         };
         await this.publishBox();
         return;
       }
-      if (newBoxState.boxState === BoxState.Paused) {
+      this.boxTimingState = {
+        endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
+        startedAt: dayjs().unix(),
+        state: BoxState.Active,
+      };
+      let counter = 0;
+      let isInitialized = false;
+      while (!isInitialized && counter < 10) {
+        const connection = this.sharedService.getRpcConnection();
+        isInitialized = await initBoxIx(
+          this.getBoxPda(),
+          this.box.boxId,
+          this.box,
+          this.activeNft,
+          connection,
+          counter,
+        );
+
+        counter++;
+      }
+
+      if (!isInitialized) {
         this.boxTimingState = {
-          endsAt: dayjs().add(newBoxState.boxPause, 'seconds').unix(),
+          endsAt: -1,
           startedAt: dayjs().unix(),
           state: BoxState.Paused,
         };
         await this.publishBox();
-
-        await this.boxConfigRepo.save({
-          ...this.box,
-          boxState: BoxState.Active,
-        });
-        await sleep(newBoxState.boxPause * 1000);
+        return;
       }
-      this.box = newBoxState;
-    }
-    const boxSetup = await this.setupBox();
-    this.logger.debug(`Box setup successfully:${boxSetup}`);
-    if (!boxSetup) {
-      this.boxTimingState = {
-        endsAt: -1,
-        startedAt: -1,
-        state: BoxState.Removed,
-      };
-      await this.publishBox();
-      return;
-    }
-    this.boxTimingState = {
-      endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
-      startedAt: dayjs().unix(),
-      state: BoxState.Active,
-    };
-    let counter = 0;
-    let isInitialized = false;
-    while (!isInitialized && counter < 10) {
-      const connection = this.sharedService.getRpcConnection();
-      isInitialized = await initBoxIx(
-        this.getBoxPda(),
-        this.box.boxId,
-        this.box,
-        this.activeNft,
-        connection,
-        counter,
-      );
 
-      counter++;
-    }
+      await this.getBox();
 
-    if (!isInitialized) {
+      this.timer = await sleep(this.box.boxDuration * 1000);
+
+      if (!this.hasPreResolved) {
+        while (this.additionalTimeout > 0) {
+          let sleepAmount = this.additionalTimeout;
+          this.additionalTimeout = 0;
+          await sleep(sleepAmount * 1000);
+        }
+
+        await this.cooldown();
+      }
+      this.hasPreResolved = false;
+    } else {
+      const { activeBid, bidder, nftId, nftUri, winner } = initBoxData;
       this.boxTimingState = {
-        endsAt: -1,
+        endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
+        state: BoxState.Active,
         startedAt: dayjs().unix(),
-        state: BoxState.Paused,
       };
-      await this.publishBox();
-      return;
-    }
+      const jsonNftdata = (await (await fetch(nftUri)).json()).image;
+      const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
+      this.activeNft = {
+        boxId: this.box.boxId.toString(),
+        boxPool: this.box.boxPool,
+        isInBox: true,
+        nftId,
+        nftImage: jsonNftdata.image,
+        nftName: jsonNftdata.name,
+        nftUri,
+        reshuffleCount: 0,
+      };
+      this.bidder = bidder.toString();
 
-    await this.getBox();
+      this.bidders = [
+        { bidAmount: activeBid, walletAddress: bidder, username: bidder },
+      ];
 
-    this.timer = await sleep(this.box.boxDuration * 1000);
-
-    if (!this.hasPreResolved) {
-      while (this.additionalTimeout > 0) {
-        let sleepAmount = this.additionalTimeout;
-        this.additionalTimeout = 0;
-        await sleep(sleepAmount * 1000);
+      this.box = { ...newBoxState };
+      if (winner) {
+        this.isWon = true;
       }
-
-      await this.cooldown();
+      this.currentBid = activeBid;
+      await this.publishBox();
     }
-    this.hasPreResolved = false;
   }
   async cooldown() {
     await this.resolveBox();
