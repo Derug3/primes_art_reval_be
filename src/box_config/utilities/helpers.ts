@@ -643,14 +643,11 @@ export async function refundBox(connection: Connection) {
     console.log(error);
   }
 }
-
 export async function checkIfProofPdaExists(
   nftId: string,
   connection: Connection,
 ) {
   try {
-    console.log('Checking pda existance');
-
     const [winningProofAddress] = PublicKey.findProgramAddressSync(
       [Buffer.from(primeBoxWinnerSeed), Buffer.from(nftId)],
       new PublicKey(programId),
@@ -662,7 +659,6 @@ export async function checkIfProofPdaExists(
     return true;
   }
 }
-
 export async function tryInitBox(boxAddress: PublicKey) {
   try {
     const boxData = await program.account.boxData.fetch(boxAddress);
@@ -671,12 +667,11 @@ export async function tryInitBox(boxAddress: PublicKey) {
         nftId: boxData.nftId,
         nftUri: boxData.nftUri,
         bidder: boxData.bidder.toString(),
-        activeBid: boxData.activeBid.toNumber(),
+        activeBid: boxData.activeBid.toNumber() / LAMPORTS_PER_SOL,
         winner: boxData.winnerAddress?.toString() ?? null,
       };
-    } else if (boxData.executionsCount.toNumber() === 0) {
-      return undefined;
     }
+    return undefined;
   } catch (error) {
     return undefined;
   }
