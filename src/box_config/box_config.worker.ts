@@ -38,7 +38,6 @@ import {
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { UserService } from 'src/user/user.service';
 import { StatisticsService } from 'src/statistics/statistics.service';
-import { writeFileSync } from 'fs';
 import { SharedService } from 'src/shared/shared.service';
 
 export class BoxConfigWorker {
@@ -162,6 +161,7 @@ export class BoxConfigWorker {
 
       await this.getBox();
 
+      await this.storeBoxTimingState();
       this.timer = await sleep(this.box.boxDuration * 1000);
 
       if (!this.hasPreResolved) {
@@ -177,11 +177,13 @@ export class BoxConfigWorker {
     } else {
       try {
         const { activeBid, bidder, nftId, nftUri, winner } = initBoxData;
+        const boxTimingState = await this.getBoxTimingState();
         this.boxTimingState = {
-          endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
+          endsAt: boxTimingState.endsAt,
           state: BoxState.Active,
           startedAt: dayjs().unix(),
         };
+        await this.storeBoxTimingState();
         const jsonNftdata = await (await fetch(nftUri)).json();
 
         const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
@@ -614,6 +616,27 @@ export class BoxConfigWorker {
       await this.boxConfigRepo.save(box);
     } catch (error) {
       this.logger.error(error.message);
+    }
+  }
+  async storeBoxTimingState() {
+    try {
+      const box = await this.boxConfigRepo.findOne({
+        where: { boxId: this.box.boxId },
+      });
+      box.boxTimingState = this.boxTimingState;
+    } catch (error) {
+      this.logger.log(error.message);
+    }
+  }
+
+  async getBoxTimingState() {
+    try {
+      const box = await this.boxConfigRepo.findOne({
+        where: { boxId: this.box.boxId },
+      });
+      return box.boxTimingState;
+    } catch (error) {
+      this.logger.log(error.message);
     }
   }
 }

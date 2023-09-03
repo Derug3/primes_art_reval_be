@@ -1,6 +1,11 @@
 import { BoxType } from 'src/enum/enums';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { Bidder, BoxPool, BoxState } from '../types/box_config.types';
+import {
+  Bidder,
+  BoxPool,
+  BoxState,
+  BoxTimigState,
+} from '../types/box_config.types';
 
 @Entity()
 export class BoxConfig {
@@ -28,6 +33,8 @@ export class BoxConfig {
   boxType: BoxType;
   @Column({ type: 'jsonb', nullable: true })
   userBidData: Bidder[];
+  @Column({ type: 'jsonb', nullable: true })
+  boxTimingState: BoxTimigState;
 }
 export enum ActionType {
   Bid,
