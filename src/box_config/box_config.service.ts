@@ -11,7 +11,7 @@ import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { BoxConfigWorker } from './box_config.worker';
 import { BoxConfigRepository } from './repository/box.config.repository';
 import { SaveOrUpdateBoxConfig } from './so/save_update.so';
-import { BoxConfigInput, BoxState } from './types/box_config.types';
+import { BoxConfigInput, BoxPool, BoxState } from './types/box_config.types';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
 import { NftService } from 'src/nft/nft.service';
@@ -21,6 +21,10 @@ import { BoxType } from 'src/enum/enums';
 import { UserService } from 'src/user/user.service';
 import { StatisticsService } from 'src/statistics/statistics.service';
 import { SharedService } from 'src/shared/shared.service';
+import { SlackWebhookAdminService } from '../shared/slack-webhook-admin.service';
+import { IncomingWebhookSendArguments } from '@slack/webhook';
+import { BoxConfig } from './entity/box_config.entity';
+
 @Injectable()
 export class BoxConfigService implements OnModuleInit {
   private saveOrUpdateBox: SaveOrUpdateBoxConfig;
@@ -37,6 +41,7 @@ export class BoxConfigService implements OnModuleInit {
     private readonly userService: UserService,
     private readonly statsSerivce: StatisticsService,
     private readonly sharedService: SharedService,
+    private readonly slackAdminWebhook: SlackWebhookAdminService,
   ) {
     this.workers = [];
     this.saveOrUpdateBox = new SaveOrUpdateBoxConfig(boxConfigRepo);
@@ -111,9 +116,12 @@ export class BoxConfigService implements OnModuleInit {
       'Update Primes Mint',
       authority,
     );
+
     if (!isVerified) throw new UnauthorizedException();
     const saved = await this.saveOrUpdateBox.execute(box);
-    this.logger.debug(`Staring box worker with id:${saved.boxId}`);
+    this.emitAdminWebhookSaveOrUpdateConfig(saved.boxId, box, authority);
+
+    this.logger.debug(`Staring box worker with id: ${saved.boxId}`);
     if (!box.boxId) {
       const newWorker = new BoxConfigWorker(
         this.subscriptionService,
@@ -138,9 +146,7 @@ export class BoxConfigService implements OnModuleInit {
   }
 
   async getActiveBoxes() {
-    const configs = this.workers.map((w) => w.mapToDto());
-
-    return configs;
+    return this.workers.map((w) => w.mapToDto());
   }
 
   async deleteBox(boxId: number, signedMessage: string, authority: string) {
@@ -166,6 +172,7 @@ export class BoxConfigService implements OnModuleInit {
       if (existingBox) {
         existingBox.boxState = BoxState.Removed;
         await this.boxConfigRepo.save(existingBox);
+        this.emitAdminWebhookDeleteBox(existingBox, authority);
       }
       return true;
     } catch (error) {
@@ -198,7 +205,211 @@ export class BoxConfigService implements OnModuleInit {
     if (!isVerified) throw new UnauthorizedException();
     await this.boxConfigRepo.delete({});
 
+    this.emitAdminWebhookDeleteAllBoxes(authority);
+
     this.workers = [];
     return true;
+  }
+
+  private emitAdminWebhookSaveOrUpdateConfig(
+    boxId: number,
+    box: BoxConfigInput,
+    authority: string,
+  ) {
+    this.slackAdminWebhook
+      .sendMessage({
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              text: box.boxId
+                ? 'Save or Update Box Config'
+                : 'Create new Box Config',
+              type: 'plain_text',
+              emoji: true,
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Box ID*\n${boxId}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Box Pool*\n${BoxPool[box.boxPool]}`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Box State*\n${BoxState[box.boxState]}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Box Type*\n${BoxType[box.boxType]}`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Buy Price*\n${box.buyNowPrice ?? 'none'}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Start Bid Price*\n${box.bidStartPrice ?? 'none'}`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Bid Increase Price*\n${box.bidIncrease ?? 'none'}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Box Duration*\n${box.boxDuration} sec`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Cooldown Duration*\n${box.cooldownDuration} sec`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Authority*\n<https://solscan.io/account/${authority}|${authority}>`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Program*\n<https://solscan.io/account/${
+                  process.env.PROGRAM_ID as string
+                }|${process.env.PROGRAM_ID as string}>`,
+              },
+            ],
+          },
+        ],
+      } as IncomingWebhookSendArguments)
+      .then(() => {
+        this.logger.debug(
+          'Sent webhook admin event "Save or Update Box Config"',
+        );
+      })
+      .catch((e) => {
+        this.logger.error(
+          'Error send webhook admin event "Save or Update Box Config"',
+          e.stack,
+        );
+      });
+  }
+
+  private emitAdminWebhookDeleteBox(boxConfig: BoxConfig, authority: string) {
+    this.slackAdminWebhook
+      .sendMessage({
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              text: 'Delete Box Config',
+              type: 'plain_text',
+              emoji: true,
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Box ID*\n${boxConfig.boxId}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Box Pool*\n${BoxPool[boxConfig.boxPool]}`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Authority*\n<https://solscan.io/account/${authority}|${authority}>`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Program*\n<https://solscan.io/account/${
+                  process.env.PROGRAM_ID as string
+                }|${process.env.PROGRAM_ID as string}>`,
+              },
+            ],
+          },
+        ],
+      } as IncomingWebhookSendArguments)
+      .then(() => {
+        this.logger.debug('Sent webhook admin event "Delete Box Config"');
+      })
+      .catch((e) => {
+        this.logger.error(
+          'Error send webhook admin event "Delete Box Config"',
+          e.stack,
+        );
+      });
+  }
+
+  private emitAdminWebhookDeleteAllBoxes(authority: string) {
+    this.slackAdminWebhook
+      .sendMessage({
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              text: 'Delete all Box Configs',
+              type: 'plain_text',
+              emoji: true,
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Authority*\n<https://solscan.io/account/${authority}|${authority}>`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Program*\n<https://solscan.io/account/${
+                  process.env.PROGRAM_ID as string
+                }|${process.env.PROGRAM_ID as string}>`,
+              },
+            ],
+          },
+        ],
+      } as IncomingWebhookSendArguments)
+      .then(() => {
+        this.logger.debug('Sent webhook admin event "Delete all Box Configs"');
+      })
+      .catch((e) => {
+        this.logger.error(
+          'Error send webhook admin event "Delete all Box Configs"',
+          e.stack,
+        );
+      });
   }
 }
