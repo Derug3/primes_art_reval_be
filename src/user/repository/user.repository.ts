@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, ILike, Repository } from 'typeorm';
+import { DataSource, EntityManager, ILike, Repository } from 'typeorm';
 import { User } from '../entity/user.entity';
 
 @Injectable()
@@ -8,8 +8,11 @@ export class UserRepository extends Repository<User> {
     super(User, dataSource.createEntityManager());
   }
 
-  storeUsers(user: User[]) {
-    return this.save(user);
+  storeUsers(users: User[]) {
+    return this.manager.transaction(async (entityManager: EntityManager) => {
+      await entityManager.query('TRUNCATE TABLE "user";');
+      return entityManager.save(users, { chunk: 100 });
+    });
   }
 
   getUserByWallet(wallet: string) {
