@@ -13,6 +13,8 @@ import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { PoolsConfigRepository } from './repository/pools_config.repository';
 import { BoxPool } from 'src/box_config/types/box_config.types';
 import { checkIfMessageIsSigned } from 'src/box_config/utilities/helpers';
+import { SlackWebhookAdminService } from '../shared/slack-webhook-admin.service';
+import { IncomingWebhookSendArguments } from '@slack/webhook';
 
 @Injectable()
 export class StatisticsService implements OnModuleInit {
@@ -23,6 +25,7 @@ export class StatisticsService implements OnModuleInit {
     private readonly subscriberService: SubscriberService,
     @InjectRepository(PoolsConfigRepository)
     private readonly poolConfigRepo: PoolsConfigRepository,
+    private readonly slackAdminWebhook: SlackWebhookAdminService,
   ) {}
 
   async onModuleInit() {
@@ -100,6 +103,9 @@ export class StatisticsService implements OnModuleInit {
       const stats = await this.statsRepo.findOne({ where: {} });
       stats.secondsExtending = secondsExtending;
       await this.statsRepo.save(stats);
+
+      this.emitAdminWebhookUpdateSecondsExtending(stats, authority);
+
       return true;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -147,10 +153,21 @@ export class StatisticsService implements OnModuleInit {
           boxPool,
           isVisible,
         });
+        this.emitAdminWebhookUpdateBoxPoolVisible(
+          boxPool,
+          isVisible,
+          authority,
+        );
       } else {
         relatedPool.isVisible = isVisible;
         await this.poolConfigRepo.save(relatedPool);
+        this.emitAdminWebhookUpdateBoxPoolVisible(
+          relatedPool.boxPool,
+          isVisible,
+          authority,
+        );
       }
+
       return true;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -177,5 +194,122 @@ export class StatisticsService implements OnModuleInit {
     } catch (error) {
       console.log(error);
     }
+  }
+
+  private emitAdminWebhookUpdateSecondsExtending(
+    stats: StatsEntity,
+    authority: string,
+  ) {
+    this.slackAdminWebhook
+      .sendMessage({
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              text:
+                SlackWebhookAdminService.getEmojiRuntime() +
+                ' Update Seconds Extending',
+              type: 'plain_text',
+              emoji: true,
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Extend bidding duration in seconds*\n${stats.secondsExtending}`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Authority*\n<https://solscan.io/account/${authority}|${authority}>`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Program*\n<https://solscan.io/account/${
+                  process.env.PROGRAM_ID as string
+                }|${process.env.PROGRAM_ID as string}>`,
+              },
+            ],
+          },
+        ],
+      } as IncomingWebhookSendArguments)
+      .then(() => {
+        this.logger.debug(
+          'Sent webhook admin event "Update Seconds Extending"',
+        );
+      })
+      .catch((e) => {
+        this.logger.error(
+          'Error send webhook admin event "Update Seconds Extending"',
+          e.stack,
+        );
+      });
+  }
+
+  private emitAdminWebhookUpdateBoxPoolVisible(
+    boxPool: BoxPool,
+    isVisible: boolean,
+    authority: string,
+  ) {
+    this.slackAdminWebhook
+      .sendMessage({
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              text:
+                SlackWebhookAdminService.getEmojiRuntime() +
+                ' Update BoxPool Visible',
+              type: 'plain_text',
+              emoji: true,
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*BoxPool*\n${BoxPool[boxPool]}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Is Visible*\n${isVisible ? '✅' : '❌'}`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Authority*\n<https://solscan.io/account/${authority}|${authority}>`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Program*\n<https://solscan.io/account/${
+                  process.env.PROGRAM_ID as string
+                }|${process.env.PROGRAM_ID as string}>`,
+              },
+            ],
+          },
+        ],
+      } as IncomingWebhookSendArguments)
+      .then(() => {
+        this.logger.debug(
+          'Sent webhook admin event "Update Seconds Extending"',
+        );
+      })
+      .catch((e) => {
+        this.logger.error(
+          'Error send webhook admin event "Update Seconds Extending"',
+          e.stack,
+        );
+      });
   }
 }

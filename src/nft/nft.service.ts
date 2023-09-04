@@ -264,7 +264,7 @@ export class NftService implements OnModuleInit {
           {
             type: 'header',
             text: {
-              text: title,
+              text: SlackWebhookAdminService.getEmojiRuntime() + ' ' + title,
               type: 'plain_text',
               emoji: true,
             },
