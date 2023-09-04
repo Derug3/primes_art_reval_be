@@ -110,14 +110,11 @@ export const parseAndValidatePlaceBidTx = async (
       transaction.serialize({ requireAllSignatures: false }),
     );
 
-    const confirmed = await connection.confirmTransaction(txSig);
+    await confirmTransaction(txSig, connection);
     if (instructionsWithoutCb.length > 1) {
       hasResolved = true;
     }
-    if (confirmed.value.err !== null) {
-      // throw new Error(confirmed.value.err);
-      throw new Error('Transaction failed');
-    }
+
     const box = await program.account.boxData.fetch(
       instructionsWithoutCb[0].keys[0].pubkey,
     );
@@ -187,6 +184,8 @@ export const parseAndValidatePlaceBidTx = async (
       username,
     };
   } catch (error) {
+    console.log(error);
+
     writeFileSync('./error.json', JSON.stringify(error));
     emitToWebhook({
       txSig,
@@ -238,7 +237,7 @@ export const resolveBoxIx = async (
 
     versionedTx.sign([authority]);
     txSig = await connection.sendRawTransaction(versionedTx.serialize());
-    await connection.confirmTransaction(txSig);
+    await confirmTransaction(txSig, connection);
     emitToWebhook({
       bothEvents: 'Auction Won',
       winner: boxData.winnerAddress?.toString() ?? boxData.bidder?.toString(),
@@ -338,7 +337,7 @@ export const initBoxIx = async (
 
     const txSig = await connection.sendRawTransaction(versionedTx.serialize());
 
-    await connection.confirmTransaction(txSig);
+    await confirmTransaction(txSig, connection);
     return true;
   } catch (error) {
     console.error(`Error init box #${boxId}`, error);
@@ -370,7 +369,7 @@ export const claimNft = async (tx: any, connection: Connection) => {
     transaction.partialSign(signer);
 
     txSig = await connection.sendRawTransaction(transaction.serialize());
-    await connection.confirmTransaction(txSig);
+    await confirmTransaction(txSig, connection);
     const nonComputeBudgetIxs = transaction.instructions.filter(
       (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
     )[0];
@@ -560,25 +559,24 @@ export const recoverBox = async (
     tx.add(ix);
     tx.sign(authoritySig);
 
-    console.log(tx, 'TRANSACTION');
-
     txSig = await connection.sendRawTransaction(tx.serialize());
-    const txConfirmed = await connection.confirmTransaction(txSig);
-    if (!txConfirmed.value.err) {
-      const uriData = await (await fetch(recoverBox.nftUri)).json();
-      emitToWebhook({
-        eventName: 'Box Recovered',
-        winner: recoverBox.winner,
-        winningPrice: recoverBox.winningAmount,
-        nft: {
-          nftId: recoverBox.nftId,
-          nftImgUrl: uriData.image,
-          uri: recoverBox.nftUri,
-          name: uriData.name,
-        },
-      });
-      return true;
-    } else return false;
+    const blockhashData = await connection.getLatestBlockhash();
+
+    await confirmTransaction(txSig, connection);
+
+    const uriData = await (await fetch(recoverBox.nftUri)).json();
+    emitToWebhook({
+      eventName: 'Box Recovered',
+      winner: recoverBox.winner,
+      winningPrice: recoverBox.winningAmount,
+      nft: {
+        nftId: recoverBox.nftId,
+        nftImgUrl: uriData.image,
+        uri: recoverBox.nftUri,
+        name: uriData.name,
+      },
+    });
+    return true;
   } catch (error) {
     console.log(error);
     emitToWebhook({
@@ -683,5 +681,22 @@ export async function tryInitBox(boxAddress: PublicKey) {
     return undefined;
   } catch (error) {
     return undefined;
+  }
+}
+
+export async function confirmTransaction(
+  txSignature: string,
+  connection: Connection,
+) {
+  const blockhashData = await connection.getLatestBlockhash();
+
+  const confirmedTx = await connection.confirmTransaction({
+    blockhash: blockhashData.blockhash,
+    lastValidBlockHeight: blockhashData.lastValidBlockHeight,
+    signature: txSignature,
+  });
+
+  if (confirmedTx.value.err) {
+    throw new Error(confirmedTx.value.err.toString());
   }
 }
