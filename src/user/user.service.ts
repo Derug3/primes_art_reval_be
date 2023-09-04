@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,12 +11,18 @@ import {
 } from 'src/box_config/utilities/helpers';
 import { DiscordRole, User } from './entity/user.entity';
 import { UserRepository } from './repository/user.repository';
+import { SlackWebhookAdminService } from '../shared/slack-webhook-admin.service';
+import { IncomingWebhookSendArguments } from '@slack/webhook';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(UserRepository) private readonly userRepo: UserRepository,
+    private readonly slackAdminWebhook: SlackWebhookAdminService,
   ) {}
+
   async storeUsers(signedMessage: string, authority: string) {
     try {
       const isVerified = checkIfMessageIsSigned(
@@ -33,6 +40,9 @@ export class UserService {
       }
       const mappedUsers = this.mapUsers(users.data.result);
       await this.userRepo.storeUsers(mappedUsers);
+
+      this.emitAdminWebhookStoreUsers(mappedUsers, authority);
+
       return true;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -78,5 +88,54 @@ export class UserService {
         };
       });
     }
+  }
+
+  private emitAdminWebhookStoreUsers(users: User[], authority: string) {
+    this.slackAdminWebhook
+      .sendMessage({
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              text: 'Store Users',
+              type: 'plain_text',
+              emoji: true,
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Users count*\n${users.length}`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Authority*\n<https://solscan.io/account/${authority}|${authority}>`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Program*\n<https://solscan.io/account/${
+                  process.env.PROGRAM_ID as string
+                }|${process.env.PROGRAM_ID as string}>`,
+              },
+            ],
+          },
+        ],
+      } as IncomingWebhookSendArguments)
+      .then(() => {
+        this.logger.debug('Sent webhook admin event "Store Users"');
+      })
+      .catch((e) => {
+        this.logger.error(
+          'Error send webhook admin event "Store Users"',
+          e.stack,
+        );
+      });
   }
 }
