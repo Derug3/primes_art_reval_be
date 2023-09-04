@@ -305,11 +305,14 @@ export const initBoxIx = async (
 ) => {
   try {
     const authority = getAuthorityAsSigner();
+    console.log(box.bidStartPrice, 'BSP');
 
     const ix = await program.methods
       .initBox(boxId.toString(), {
         bidIncrease: new BN(box.bidIncrease * LAMPORTS_PER_SOL),
-        bidStartPrice: new BN(box.bidStartPrice * LAMPORTS_PER_SOL),
+        bidStartPrice: box.bidStartPrice
+          ? new BN(box.bidStartPrice * LAMPORTS_PER_SOL)
+          : null,
         buyNowPrice: box.buyNowPrice
           ? new BN(box.buyNowPrice * LAMPORTS_PER_SOL)
           : null,
@@ -324,7 +327,6 @@ export const initBoxIx = async (
         systemProgram: SystemProgram.programId,
       })
       .instruction();
-
     const txMessage = new TransactionMessage({
       instructions: [ix],
       payerKey: authority.publicKey,
