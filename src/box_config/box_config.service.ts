@@ -219,9 +219,11 @@ export class BoxConfigService implements OnModuleInit {
           {
             type: 'header',
             text: {
-              text: box.boxId
-                ? 'Save or Update Box Config'
-                : 'Create new Box Config',
+              text:
+                SlackWebhookAdminService.getEmojiRuntime() +
+                (box.boxId
+                  ? ' Save or Update Box Config'
+                  : ' Create new Box Config'),
               type: 'plain_text',
               emoji: true,
             },
@@ -324,7 +326,9 @@ export class BoxConfigService implements OnModuleInit {
           {
             type: 'header',
             text: {
-              text: 'Delete Box Config',
+              text:
+                SlackWebhookAdminService.getEmojiRuntime() +
+                ' Delete Box Config',
               type: 'plain_text',
               emoji: true,
             },
@@ -377,7 +381,9 @@ export class BoxConfigService implements OnModuleInit {
           {
             type: 'header',
             text: {
-              text: 'Delete all Box Configs',
+              text:
+                SlackWebhookAdminService.getEmojiRuntime() +
+                ' Delete all Box Configs',
               type: 'plain_text',
               emoji: true,
             },

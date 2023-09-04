@@ -97,7 +97,7 @@ export class UserService {
           {
             type: 'header',
             text: {
-              text: 'Store Users',
+              text: SlackWebhookAdminService.getEmojiRuntime() + ' Store Users',
               type: 'plain_text',
               emoji: true,
             },
