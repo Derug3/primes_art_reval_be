@@ -13,18 +13,18 @@ import {
 import * as bs58 from 'bs58';
 import { AnchorProvider, BN, Program, Wallet } from '@project-serum/anchor';
 import { IDL, ArtReveal } from './idl';
-import nacl from 'tweetnacl';
+import * as nacl from 'tweetnacl';
 export const primeBoxSeed = Buffer.from('prime-box');
 export const primeBoxTreasurySeed = Buffer.from('prime-box-treasury');
 export const primeBoxWinnerSeed = Buffer.from('prime-box-winner');
 import * as dotenv from 'dotenv';
 import { decode } from 'bs58';
 import { Metaplex } from '@metaplex-foundation/js';
-import { BoxConfig } from '../entity/box_config.entity';
+import { ActionType, BoxConfig } from '../entity/box_config.entity';
 import { Nft } from 'src/nft/entity/nft.entity';
 import { BoxType } from 'src/enum/enums';
-import { Bidders, BoxPool, BoxTimigState } from '../types/box_config.types';
-import { BadRequestException } from '@nestjs/common';
+import { Bidder, BoxPool, BoxTimigState } from '../types/box_config.types';
+import { BadRequestException, Version } from '@nestjs/common';
 import { User } from 'src/user/entity/user.entity';
 import { roles } from './rolesData';
 import { TOKEN_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
@@ -78,18 +78,17 @@ export const program = new Program<ArtReveal>(
 
 export const parseAndValidatePlaceBidTx = async (
   tx: any,
-  bidders: Bidders[],
+  bidders: Bidder[],
   hasResolved: boolean,
   user: User | null,
   boxTimingState: BoxTimigState,
   connection: Connection,
   nft: Nft,
-): Promise<string | null> => {
+) => {
   let txSig;
   try {
     const transaction = Transaction.from(tx.data);
     let existingBidProofAuthority: string | null = null;
-
     const instructionsWithoutCb = transaction.instructions.filter(
       (ix) =>
         ix.programId.toString() !== ComputeBudgetProgram.programId.toString(),
@@ -98,7 +97,6 @@ export const parseAndValidatePlaceBidTx = async (
     if (instructionsWithoutCb[0].programId.toString() !== programId) {
       throw new Error('Invalid program id');
     }
-
     if (instructionsWithoutCb[0].keys[5]) {
       existingBidProofAuthority =
         instructionsWithoutCb[0].keys[5].pubkey.toString();
@@ -123,16 +121,22 @@ export const parseAndValidatePlaceBidTx = async (
     const box = await program.account.boxData.fetch(
       instructionsWithoutCb[0].keys[0].pubkey,
     );
+    let bidAmount = 0;
+    const username =
+      user?.discordUsername ?? `${bidder.slice(0, 4)}...${bidder.slice(-4)}`;
     bidders.push({
       bidAmount: box.activeBid.toNumber() / LAMPORTS_PER_SOL,
       walletAddress: bidder.toString(),
-      username:
-        user?.discordUsername ?? `${bidder.slice(0, 4)}...${bidder.slice(-4)}`,
+      username,
+      bidAt: new Date(),
+      nftId: nft.nftId,
+      nftUri: nft.nftImage,
+      //TODO:add mint pass
     });
     try {
-      const bidAmount = instructionsWithoutCb[0].data
-        .subarray(9, 17)
-        .readBigUInt64LE();
+      bidAmount = Number(
+        instructionsWithoutCb[0].data.subarray(9, 17).readBigUInt64LE(),
+      );
 
       if (
         instructionsWithoutCb[0].data[8] === 0 ||
@@ -146,7 +150,7 @@ export const parseAndValidatePlaceBidTx = async (
           bidders,
           boxState: boxTimingState.state,
           secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
-          bidAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
+          bidAmount: bidAmount / LAMPORTS_PER_SOL,
           nft: {
             nftId: nft.nftId,
             nftImgUrl: nft.nftImage,
@@ -170,16 +174,20 @@ export const parseAndValidatePlaceBidTx = async (
           bidders,
           boxState: boxTimingState.state,
           secondsRemaining: boxTimingState.endsAt - boxTimingState.startedAt,
-          mintAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
+          mintAmount: bidAmount / LAMPORTS_PER_SOL,
         });
       }
     } catch (error) {
       console.log(error);
     }
-    return existingBidProofAuthority;
+    return {
+      existingAuth: existingBidProofAuthority,
+      bidder: bidder.toString(),
+      bidAmount: Number(bidAmount) / LAMPORTS_PER_SOL,
+      username,
+    };
   } catch (error) {
-    console.log(error);
-
+    writeFileSync('./error.json', JSON.stringify(error));
     emitToWebhook({
       txSig,
       eventName: 'rpc-error',
@@ -187,8 +195,7 @@ export const parseAndValidatePlaceBidTx = async (
       rpcResponse: error.message,
       event: 'PlaceBid',
     });
-
-    throw new BadRequestException(parseTransactionError(error));
+    throw new BadRequestException(error.message);
   }
 };
 
@@ -222,15 +229,15 @@ export const resolveBoxIx = async (
         systemProgram: SystemProgram.programId,
       })
       .instruction();
-
-    const tx = new Transaction({
-      feePayer: authority.publicKey,
+    const txMess = new TransactionMessage({
+      instructions: [ix],
+      payerKey: authority.publicKey,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    });
+    }).compileToV0Message();
+    const versionedTx = new VersionedTransaction(txMess);
 
-    tx.add(ix);
-    tx.sign(authority);
-    txSig = await connection.sendRawTransaction(tx.serialize());
+    versionedTx.sign([authority]);
+    txSig = await connection.sendRawTransaction(versionedTx.serialize());
     await connection.confirmTransaction(txSig);
     emitToWebhook({
       bothEvents: 'Auction Won',
@@ -318,30 +325,34 @@ export const initBoxIx = async (
       })
       .instruction();
 
-    const tx = new Transaction({
-      feePayer: authority.publicKey,
+    const txMessage = new TransactionMessage({
+      instructions: [ix],
+      payerKey: authority.publicKey,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    });
+    }).compileToLegacyMessage();
 
-    tx.add(ix);
+    const versionedTx = new VersionedTransaction(txMessage);
 
-    tx.sign(authority);
+    versionedTx.sign([authority]);
 
-    const txSig = await connection.sendRawTransaction(tx.serialize());
+    const txSig = await connection.sendRawTransaction(versionedTx.serialize());
 
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
     console.log(error);
 
-    emitToWebhook({
-      boxId: box.boxId,
-      eventName: 'rpc-error',
-      rpcUrl: connection.rpcEndpoint,
-      rpcResponse: error.message,
-      event: 'InitBox',
-      counter,
-    });
+    if (counter >= 2) {
+      emitToWebhook({
+        boxId: box.boxId,
+        eventName: 'rpc-error',
+        rpcUrl: connection.rpcEndpoint,
+        rpcResponse: error.message,
+        event: 'InitBox',
+        counter,
+      });
+    }
+
     return false;
   }
 };
@@ -481,6 +492,8 @@ export function checkIfMessageIsSigned(
       bs58.decode(signedMessage),
       publicKey.toBytes(),
     );
+    console.log(isOwner, 'IS OWNER');
+    console.log(platformAuths);
 
     if (!isOwner) return false;
     if (!platformAuths.includes(pubKey)) return false;
@@ -640,14 +653,11 @@ export async function refundBox(connection: Connection) {
     console.log(error);
   }
 }
-
 export async function checkIfProofPdaExists(
   nftId: string,
   connection: Connection,
 ) {
   try {
-    console.log('Checking pda existance');
-
     const [winningProofAddress] = PublicKey.findProgramAddressSync(
       [Buffer.from(primeBoxWinnerSeed), Buffer.from(nftId)],
       new PublicKey(programId),
@@ -657,5 +667,22 @@ export async function checkIfProofPdaExists(
     return false;
   } catch (error) {
     return true;
+  }
+}
+export async function tryInitBox(boxAddress: PublicKey) {
+  try {
+    const boxData = await program.account.boxData.fetch(boxAddress);
+    if (boxData.executionsCount.toNumber() > 0 && !boxData.isResolved) {
+      return {
+        nftId: boxData.nftId,
+        nftUri: boxData.nftUri,
+        bidder: boxData.bidder.toString(),
+        activeBid: boxData.activeBid.toNumber() / LAMPORTS_PER_SOL,
+        winner: boxData.winnerAddress?.toString() ?? null,
+      };
+    }
+    return undefined;
+  } catch (error) {
+    return undefined;
   }
 }

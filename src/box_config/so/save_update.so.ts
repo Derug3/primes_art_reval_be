@@ -12,6 +12,7 @@ export class SaveOrUpdateBoxConfig {
       if (boxConfigDto.boxId) boxConfig.boxId = +boxConfigDto.boxId;
       boxConfig.bidIncrease = boxConfigDto.bidIncrease;
       boxConfig.boxPool = boxConfigDto.boxPool;
+      boxConfig.userBidData = [];
       boxConfig.bidStartPrice = boxConfigDto.bidStartPrice;
       boxConfig.bidIncrease = boxConfigDto.bidIncrease;
       boxConfig.boxState = boxConfigDto.boxState;
