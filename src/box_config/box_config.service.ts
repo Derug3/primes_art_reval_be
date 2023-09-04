@@ -116,8 +116,24 @@ export class BoxConfigService implements OnModuleInit {
       authority,
     );
     if (!isVerified) throw new UnauthorizedException();
+    let oldBox: BoxConfig | null = null;
+    if (box.boxId) {
+      oldBox = await this.boxConfigRepo.findOne({
+        where: {
+          boxId: Number(box.boxId),
+        },
+      });
+      if (oldBox === null) {
+        throw new BadRequestException(`Box ${box.boxId} not found!`);
+      }
+    }
     const saved = await this.saveOrUpdateBox.execute(box);
-    this.emitAdminWebhookSaveOrUpdateConfig(saved.boxId, box, authority);
+    this.emitAdminWebhookSaveOrUpdateConfig(
+      saved.boxId,
+      box,
+      oldBox,
+      authority,
+    );
     this.logger.debug(`Staring box worker with id: ${saved.boxId}`);
     if (!box.boxId) {
       const newWorker = new BoxConfigWorker(
@@ -211,6 +227,7 @@ export class BoxConfigService implements OnModuleInit {
   private emitAdminWebhookSaveOrUpdateConfig(
     boxId: number,
     box: BoxConfigInput,
+    oldBox: BoxConfig | null,
     authority: string,
   ) {
     this.slackAdminWebhook
@@ -246,24 +263,19 @@ export class BoxConfigService implements OnModuleInit {
             fields: [
               {
                 type: 'mrkdwn',
-                text: `*Box State*\n${BoxState[box.boxState]}`,
+                text: `*Box Type*\n${
+                  oldBox && box.boxType !== oldBox.boxType
+                    ? `${BoxType[oldBox.boxType]} -> `
+                    : ''
+                }${BoxType[box.boxType]}`,
               },
               {
                 type: 'mrkdwn',
-                text: `*Box Type*\n${BoxType[box.boxType]}`,
-              },
-            ],
-          },
-          {
-            type: 'section',
-            fields: [
-              {
-                type: 'mrkdwn',
-                text: `*Buy Price*\n${box.buyNowPrice ?? 'none'}`,
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Start Bid Price*\n${box.bidStartPrice ?? 'none'}`,
+                text: `*Buy Price*\n${
+                  oldBox && box.buyNowPrice !== oldBox.buyNowPrice
+                    ? `${oldBox.buyNowPrice ?? 'none'} -> `
+                    : ''
+                }${box.buyNowPrice ?? 'none'}`,
               },
             ],
           },
@@ -272,11 +284,19 @@ export class BoxConfigService implements OnModuleInit {
             fields: [
               {
                 type: 'mrkdwn',
-                text: `*Bid Increase Price*\n${box.bidIncrease ?? 'none'}`,
+                text: `*Start Bid Price*\n${
+                  oldBox && box.bidStartPrice !== oldBox.bidStartPrice
+                    ? `${oldBox.bidStartPrice ?? 'none'} -> `
+                    : ''
+                }${box.bidStartPrice ?? 'none'}`,
               },
               {
                 type: 'mrkdwn',
-                text: `*Box Duration*\n${box.boxDuration} sec`,
+                text: `*Bid Increase Price*\n${
+                  oldBox && box.bidIncrease !== oldBox.bidIncrease
+                    ? `${oldBox.bidIncrease ?? 'none'} -> `
+                    : ''
+                }${box.bidIncrease ?? 'none'}`,
               },
             ],
           },
@@ -285,7 +305,19 @@ export class BoxConfigService implements OnModuleInit {
             fields: [
               {
                 type: 'mrkdwn',
-                text: `*Cooldown Duration*\n${box.cooldownDuration} sec`,
+                text: `*Box Duration*\n${
+                  oldBox && box.boxDuration !== oldBox.boxDuration
+                    ? `${oldBox.boxDuration} sec -> `
+                    : ''
+                }${box.boxDuration} sec`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Cooldown Duration*\n${
+                  oldBox && box.cooldownDuration !== oldBox.cooldownDuration
+                    ? `${oldBox.cooldownDuration} sec -> `
+                    : ''
+                }${box.cooldownDuration} sec`,
               },
             ],
           },
