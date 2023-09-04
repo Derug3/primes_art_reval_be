@@ -314,11 +314,6 @@ export type ArtReveal = {
           isSigner: false;
         },
         {
-          name: 'authority';
-          isMut: false;
-          isSigner: true;
-        },
-        {
           name: 'receiver';
           isMut: false;
           isSigner: false;
@@ -452,14 +447,6 @@ export type ArtReveal = {
             name: 'isBuyNow';
             type: 'bool';
           },
-          {
-            name: 'executionsCount';
-            type: 'u64';
-          },
-          {
-            name: 'isResolved';
-            type: 'bool';
-          },
         ];
       };
     },
@@ -512,12 +499,6 @@ export type ArtReveal = {
           {
             name: 'isMinted';
             type: 'bool';
-          },
-          {
-            name: 'primesNftMint';
-            type: {
-              option: 'publicKey';
-            };
           },
         ];
       };
@@ -1033,11 +1014,6 @@ export const IDL: ArtReveal = {
           isSigner: false,
         },
         {
-          name: 'authority',
-          isMut: false,
-          isSigner: true,
-        },
-        {
           name: 'receiver',
           isMut: false,
           isSigner: false,
@@ -1171,14 +1147,6 @@ export const IDL: ArtReveal = {
             name: 'isBuyNow',
             type: 'bool',
           },
-          {
-            name: 'executionsCount',
-            type: 'u64',
-          },
-          {
-            name: 'isResolved',
-            type: 'bool',
-          },
         ],
       },
     },
@@ -1231,12 +1199,6 @@ export const IDL: ArtReveal = {
           {
             name: 'isMinted',
             type: 'bool',
-          },
-          {
-            name: 'primesNftMint',
-            type: {
-              option: 'publicKey',
-            },
           },
         ],
       },

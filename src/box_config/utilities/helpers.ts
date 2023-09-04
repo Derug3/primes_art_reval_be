@@ -662,22 +662,3 @@ export async function checkIfProofPdaExists(
     return true;
   }
 }
-
-export async function tryInitBox(boxAddress: PublicKey) {
-  try {
-    const boxData = await program.account.boxData.fetch(boxAddress);
-    if (boxData.executionsCount.toNumber() > 0 && !boxData.isResolved) {
-      return {
-        nftId: boxData.nftId,
-        nftUri: boxData.nftUri,
-        bidder: boxData.bidder.toString(),
-        activeBid: boxData.activeBid.toNumber(),
-        winner: boxData.winnerAddress?.toString() ?? null,
-      };
-    } else if (boxData.executionsCount.toNumber() === 0) {
-      return undefined;
-    }
-  } catch (error) {
-    return undefined;
-  }
-}
