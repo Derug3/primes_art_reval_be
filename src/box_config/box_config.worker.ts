@@ -229,10 +229,7 @@ export class BoxConfigWorker {
         this.isWon = true;
       }
       this.currentBid = activeBid;
-      this.timer = await this.publishBox();
-      await sleep(this.box.boxDuration * 1000);
-      this.hasPreResolved = false;
-      await this.cooldown();
+      await this.publishBox();
     }
   }
   async cooldown() {
