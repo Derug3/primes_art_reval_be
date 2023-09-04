@@ -342,16 +342,14 @@ export const initBoxIx = async (
   } catch (error) {
     console.log(error);
 
-    if (counter >= 2) {
-      emitToWebhook({
-        boxId: box.boxId,
-        eventName: 'rpc-error',
-        rpcUrl: connection.rpcEndpoint,
-        rpcResponse: error.message,
-        event: 'InitBox',
-        counter,
-      });
-    }
+    emitToWebhook({
+      boxId: box.boxId,
+      eventName: 'rpc-error',
+      rpcUrl: connection.rpcEndpoint,
+      rpcResponse: error.message,
+      event: 'InitBox',
+      counter,
+    });
 
     return false;
   }
