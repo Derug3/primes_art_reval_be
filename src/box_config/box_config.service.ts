@@ -109,18 +109,15 @@ export class BoxConfigService implements OnModuleInit {
         "Can't define bid  price on box that has buy now type type!",
       );
     }
-    //TODO:comment in
 
     const isVerified = checkIfMessageIsSigned(
       signedMessage,
       'Update Primes Mint',
       authority,
     );
-
     if (!isVerified) throw new UnauthorizedException();
     const saved = await this.saveOrUpdateBox.execute(box);
     this.emitAdminWebhookSaveOrUpdateConfig(saved.boxId, box, authority);
-
     this.logger.debug(`Staring box worker with id: ${saved.boxId}`);
     if (!box.boxId) {
       const newWorker = new BoxConfigWorker(
@@ -136,7 +133,7 @@ export class BoxConfigService implements OnModuleInit {
       );
       this.workers.push(newWorker);
     }
-    //TODO:think if we should do this?
+
     if (saved.boxState === BoxState.Removed) {
       const index = this.workers.findIndex(
         (box) => box.box.boxId === saved.boxId,
