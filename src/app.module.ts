@@ -27,6 +27,7 @@ import { SharedModule } from './shared/shared.module';
         port: parseInt(process.env.REDIS_PORT) || 6379,
       },
     }),
+
     GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
       imports: [SubscriberModule],

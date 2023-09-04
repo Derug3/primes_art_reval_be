@@ -102,6 +102,17 @@ export class BoxConfigWorker {
       this.additionalTimeout = 0;
       this.cooldownAdditionalTimeout = 0;
 
+      if (this.box.initialDelay) {
+        this.boxTimingState = {
+          endsAt: dayjs().add(this.box.initialDelay, 'seconds').unix(),
+          startedAt: dayjs().unix(),
+          state: BoxState.Paused,
+        };
+        await this.publishBox();
+        await sleep(this.box.initialDelay * 1000);
+        await this.boxConfigRepo.save({ ...this.box, initialDelay: null });
+      }
+
       this.secondsExtending = await this.statsService.getStatsExtending();
       if (this.box.boxId) {
         const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
@@ -115,6 +126,20 @@ export class BoxConfigWorker {
           };
           await this.publishBox();
           return;
+        }
+        if (newBoxState.boxState === BoxState.Paused) {
+          this.boxTimingState = {
+            endsAt: dayjs().add(newBoxState.boxPause, 'seconds').unix(),
+            startedAt: dayjs().unix(),
+            state: BoxState.Paused,
+          };
+          await this.publishBox();
+
+          await this.boxConfigRepo.save({
+            ...this.box,
+            boxState: BoxState.Active,
+          });
+          await sleep(newBoxState.boxPause * 1000);
         }
         this.box = newBoxState;
       }
@@ -175,45 +200,39 @@ export class BoxConfigWorker {
       }
       this.hasPreResolved = false;
     } else {
-      try {
-        const { activeBid, bidder, nftId, nftUri, winner } = initBoxData;
-        this.boxTimingState = {
-          endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
-          state: BoxState.Active,
-          startedAt: dayjs().unix(),
-        };
-        const jsonNftdata = await (await fetch(nftUri)).json();
+      const { activeBid, bidder, nftId, nftUri, winner } = initBoxData;
+      this.boxTimingState = {
+        endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
+        state: BoxState.Active,
+        startedAt: dayjs().unix(),
+      };
+      const jsonNftdata = (await (await fetch(nftUri)).json()).image;
+      const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
+      this.activeNft = {
+        boxId: this.box.boxId.toString(),
+        boxPool: this.box.boxPool,
+        isInBox: true,
+        nftId,
+        nftImage: jsonNftdata.image,
+        nftName: jsonNftdata.name,
+        nftUri,
+        reshuffleCount: 0,
+      };
+      this.bidder = bidder.toString();
 
-        const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
-        this.activeNft = {
-          boxId: this.box.boxId.toString(),
-          boxPool: this.box.boxPool,
-          isInBox: true,
-          nftId,
-          nftImage: jsonNftdata.image,
-          nftName: jsonNftdata.name,
-          minted: !!winner,
-          nftUri,
-          reshuffleCount: 0,
-        };
-        this.bidder = bidder.toString();
+      this.bidders = [
+        { bidAmount: activeBid, walletAddress: bidder, username: bidder },
+      ];
 
-        this.bidders = [
-          { bidAmount: activeBid, walletAddress: bidder, username: bidder },
-        ];
-
-        this.box = { ...newBoxState };
-        if (winner) {
-          this.isWon = true;
-        }
-        this.currentBid = activeBid;
-        await this.publishBox();
-        this.timer = await sleep(this.box.boxDuration * 1000);
-        this.hasPreResolved = false;
-        await this.cooldown();
-      } catch (error) {
-        this.logger.error(error);
+      this.box = { ...newBoxState };
+      if (winner) {
+        this.isWon = true;
       }
+      this.currentBid = activeBid;
+      this.timer = await this.publishBox();
+      await sleep(this.box.boxDuration * 1000);
+      this.hasPreResolved = false;
+      await this.cooldown();
     }
   }
   async cooldown() {
