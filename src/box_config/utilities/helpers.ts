@@ -24,7 +24,7 @@ import { ActionType, BoxConfig } from '../entity/box_config.entity';
 import { Nft } from 'src/nft/entity/nft.entity';
 import { BoxType } from 'src/enum/enums';
 import { Bidder, BoxPool, BoxTimigState } from '../types/box_config.types';
-import { BadRequestException, Version } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { User } from 'src/user/entity/user.entity';
 import { roles } from './rolesData';
 import { TOKEN_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
@@ -229,15 +229,14 @@ export const resolveBoxIx = async (
         systemProgram: SystemProgram.programId,
       })
       .instruction();
-    const txMess = new TransactionMessage({
-      instructions: [ix],
-      payerKey: authority.publicKey,
+    const tx = new Transaction({
+      feePayer: authority.publicKey,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    }).compileToV0Message();
-    const versionedTx = new VersionedTransaction(txMess);
+    });
 
-    versionedTx.sign([authority]);
-    txSig = await connection.sendRawTransaction(versionedTx.serialize());
+    tx.add(ix);
+    tx.sign(authority);
+    txSig = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(txSig);
     emitToWebhook({
       bothEvents: 'Auction Won',
@@ -325,17 +324,16 @@ export const initBoxIx = async (
       })
       .instruction();
 
-    const txMessage = new TransactionMessage({
-      instructions: [ix],
-      payerKey: authority.publicKey,
+    const tx = new Transaction({
+      feePayer: authority.publicKey,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    }).compileToLegacyMessage();
+    });
 
-    const versionedTx = new VersionedTransaction(txMessage);
+    tx.add(ix);
 
-    versionedTx.sign([authority]);
+    tx.sign(authority);
 
-    const txSig = await connection.sendRawTransaction(versionedTx.serialize());
+    const txSig = await connection.sendRawTransaction(tx.serialize());
 
     await connection.confirmTransaction(txSig);
     return true;
