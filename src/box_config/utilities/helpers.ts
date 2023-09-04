@@ -341,7 +341,7 @@ export const initBoxIx = async (
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
-    console.log(error);
+    console.error(`Error init box #${boxId}`, error);
 
     emitToWebhook({
       boxId: box.boxId,
