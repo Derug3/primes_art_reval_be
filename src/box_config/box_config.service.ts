@@ -105,13 +105,12 @@ export class BoxConfigService implements OnModuleInit {
       );
     }
     //TODO:comment in
-
-    const isVerified = checkIfMessageIsSigned(
-      signedMessage,
-      'Update Primes Mint',
-      authority,
-    );
-    if (!isVerified) throw new UnauthorizedException();
+    // const isVerified = checkIfMessageIsSigned(
+    //   signedMessage,
+    //   'Update Primes Mint',
+    //   authority,
+    // );
+    // if(!isVerified) throw new UnauthorizedException()
     const saved = await this.saveOrUpdateBox.execute(box);
     this.logger.debug(`Staring box worker with id:${saved.boxId}`);
     if (!box.boxId) {
@@ -152,12 +151,12 @@ export class BoxConfigService implements OnModuleInit {
         throw new BadRequestException('Box not found!');
       }
       //TODO:comment in
-      const isVerified = checkIfMessageIsSigned(
-        signedMessage,
-        'Update Primes Mint',
-        authority,
-      );
-      if (!isVerified) throw new UnauthorizedException();
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
       this.workers[boxIndex].box.boxState = BoxState.Removed;
       this.workers.splice(boxIndex, 1);
       const existingBox = await this.boxConfigRepo.findOne({
@@ -190,12 +189,12 @@ export class BoxConfigService implements OnModuleInit {
   }
   async deleteAllBoxes(signedMessage: string, authority: string) {
     //TODO:comment in
-    const isVerified = checkIfMessageIsSigned(
-      signedMessage,
-      'Update Primes Mint',
-      authority,
-    );
-    if (!isVerified) throw new UnauthorizedException();
+    // const isVerified = checkIfMessageIsSigned(
+    //   signedMessage,
+    //   'Update Primes Mint',
+    //   authority,
+    // );
+    // if(!isVerified) throw new UnauthorizedException()
     await this.boxConfigRepo.delete({});
 
     this.workers = [];

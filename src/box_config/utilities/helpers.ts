@@ -13,7 +13,7 @@ import {
 import * as bs58 from 'bs58';
 import { AnchorProvider, BN, Program, Wallet } from '@project-serum/anchor';
 import { IDL, ArtReveal } from './idl';
-import * as nacl from 'tweetnacl';
+import nacl from 'tweetnacl';
 export const primeBoxSeed = Buffer.from('prime-box');
 export const primeBoxTreasurySeed = Buffer.from('prime-box-treasury');
 export const primeBoxWinnerSeed = Buffer.from('prime-box-winner');
@@ -490,8 +490,6 @@ export function checkIfMessageIsSigned(
       bs58.decode(signedMessage),
       publicKey.toBytes(),
     );
-    console.log(isOwner, 'IS OWNER');
-    console.log(platformAuths);
 
     if (!isOwner) return false;
     if (!platformAuths.includes(pubKey)) return false;

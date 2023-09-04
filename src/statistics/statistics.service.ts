@@ -3,7 +3,6 @@ import {
   Injectable,
   Logger,
   OnModuleInit,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { v4 } from 'uuid';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,7 +11,6 @@ import { StatsRepository } from './repository/stats.repository';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
 import { PoolsConfigRepository } from './repository/pools_config.repository';
 import { BoxPool } from 'src/box_config/types/box_config.types';
-import { checkIfMessageIsSigned } from 'src/box_config/utilities/helpers';
 
 @Injectable()
 export class StatisticsService implements OnModuleInit {
@@ -86,17 +84,17 @@ export class StatisticsService implements OnModuleInit {
   }
   async updateSecondsExtending(
     secondsExtending: number,
-    signedMessage: string,
+    sugbedMessage: string,
     authority: string,
   ) {
     try {
       //TODO:comment in
-      const isVerified = checkIfMessageIsSigned(
-        signedMessage,
-        'Update Primes Mint',
-        authority,
-      );
-      if (!isVerified) throw new UnauthorizedException();
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
       const stats = await this.statsRepo.findOne({ where: {} });
       stats.secondsExtending = secondsExtending;
       await this.statsRepo.save(stats);
@@ -136,12 +134,12 @@ export class StatisticsService implements OnModuleInit {
         where: { boxPool },
       });
       //TODO:comment in
-      const isVerified = checkIfMessageIsSigned(
-        signedMessage,
-        'Update Primes Mint',
-        authority,
-      );
-      if (!isVerified) throw new UnauthorizedException();
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
       if (!relatedPool) {
         await this.poolConfigRepo.save({
           boxPool,

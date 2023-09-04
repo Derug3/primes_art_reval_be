@@ -3,7 +3,6 @@ import {
   Injectable,
   Logger,
   OnModuleInit,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,7 +12,6 @@ import { NftRepository } from './repository/nft_repository';
 import { chunk } from 'lodash';
 
 import {
-  checkIfMessageIsSigned,
   fromBoxPoolString,
   primeBoxWinnerSeed,
   program,
@@ -53,12 +51,12 @@ export class NftService implements OnModuleInit {
         throw new BadRequestException(cdnNfts.error_message);
       }
       //TODO:comment in
-      const isVerified = checkIfMessageIsSigned(
-        signedMessage,
-        'Update Primes Mint',
-        authority,
-      );
-      if (!isVerified) throw new UnauthorizedException();
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
 
       const items = cdnNfts.data.result;
 
@@ -205,12 +203,12 @@ export class NftService implements OnModuleInit {
   async deleteAllNfts(signedMessage: string, authority: string) {
     try {
       //TODO:comment in
-      const isVerified = checkIfMessageIsSigned(
-        signedMessage,
-        'Update Primes Mint',
-        authority,
-      );
-      if (!isVerified) throw new UnauthorizedException();
+      // const isVerified = checkIfMessageIsSigned(
+      //   signedMessage,
+      //   'Update Primes Mint',
+      //   authority,
+      // );
+      // if(!isVerified) throw new UnauthorizedException()
       const allNFts = await this.nftRepository.find();
 
       await this.nftRepository.remove(allNFts);
