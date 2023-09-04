@@ -1,9 +1,9 @@
 import { BadRequestException, Logger } from '@nestjs/common';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
-import { BoxConfig } from './entity/box_config.entity';
+import { ActionType, BoxConfig } from './entity/box_config.entity';
 import { BoxConfigRepository } from './repository/box.config.repository';
 import {
-  Bidders,
+  Bidder,
   BoxConfigOutput,
   BoxPool,
   BoxState,
@@ -22,6 +22,7 @@ import {
   programId,
   resolveBoxIx,
   sleep,
+  tryInitBox,
 } from './utilities/helpers';
 import { v4 } from 'uuid';
 import Redis from 'ioredis';
@@ -37,7 +38,6 @@ import {
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { UserService } from 'src/user/user.service';
 import { StatisticsService } from 'src/statistics/statistics.service';
-import { writeFileSync } from 'fs';
 import { SharedService } from 'src/shared/shared.service';
 
 export class BoxConfigWorker {
@@ -49,7 +49,7 @@ export class BoxConfigWorker {
   bidder: string;
   isWon: boolean;
   hasResolved: boolean;
-  bidders: Bidders[];
+  bidders: Bidder[];
   hasPreResolved: boolean;
 
   secondsExtending: number;
@@ -88,112 +88,133 @@ export class BoxConfigWorker {
 
   async start() {
     this.logger.debug(`Starting box ${this.box.boxId}`);
-    this.currentBid = 0;
-    this.bidsCount = 0;
-    this.bidder = undefined;
-    this.isWon = false;
-    this.hasResolved = false;
-    this.bidders = [];
-    this.additionalTimeout = 0;
-    this.cooldownAdditionalTimeout = 0;
 
-    if (this.box.initialDelay) {
-      this.boxTimingState = {
-        endsAt: dayjs().add(this.box.initialDelay, 'seconds').unix(),
-        startedAt: dayjs().unix(),
-        state: BoxState.Paused,
-      };
-      await this.publishBox();
-      await sleep(this.box.initialDelay * 1000);
-      await this.boxConfigRepo.save({ ...this.box, initialDelay: null });
-    }
+    const initBoxData = await tryInitBox(this.getBoxPda());
 
     this.secondsExtending = await this.statsService.getStatsExtending();
-    if (this.box.boxId) {
-      const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
+    if (!initBoxData) {
+      this.currentBid = 0;
+      this.bidsCount = 0;
+      this.bidder = undefined;
+      this.isWon = false;
+      this.hasResolved = false;
+      this.bidders = [];
+      this.additionalTimeout = 0;
+      this.cooldownAdditionalTimeout = 0;
 
-      if (!newBoxState || newBoxState.boxState === BoxState.Removed) {
-        this.logger.debug(`Stopping box with id ${this.box.boxId}`);
+      if (this.box.boxId) {
+        const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
+
+        if (!newBoxState || newBoxState.boxState === BoxState.Removed) {
+          this.logger.debug(`Stopping box with id ${this.box.boxId}`);
+          this.boxTimingState = {
+            endsAt: -1,
+            startedAt: dayjs().unix(),
+            state: BoxState.Removed,
+          };
+          await this.publishBox();
+          return;
+        }
+        this.box = newBoxState;
+      }
+      const boxSetup = await this.setupBox();
+      this.logger.debug(`Box setup successfully:${boxSetup}`);
+      if (!boxSetup) {
         this.boxTimingState = {
           endsAt: -1,
-          startedAt: dayjs().unix(),
+          startedAt: -1,
           state: BoxState.Removed,
         };
         await this.publishBox();
         return;
       }
-      if (newBoxState.boxState === BoxState.Paused) {
+      this.boxTimingState = {
+        endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
+        startedAt: dayjs().unix(),
+        state: BoxState.Active,
+      };
+      let counter = 0;
+      let isInitialized = false;
+      while (!isInitialized && counter < 10) {
+        const connection = this.sharedService.getRpcConnection();
+        isInitialized = await initBoxIx(
+          this.getBoxPda(),
+          this.box.boxId,
+          this.box,
+          this.activeNft,
+          connection,
+          counter,
+        );
+
+        counter++;
+      }
+
+      if (!isInitialized) {
         this.boxTimingState = {
-          endsAt: dayjs().add(newBoxState.boxPause, 'seconds').unix(),
+          endsAt: -1,
           startedAt: dayjs().unix(),
           state: BoxState.Paused,
         };
         await this.publishBox();
-
-        await this.boxConfigRepo.save({
-          ...this.box,
-          boxState: BoxState.Active,
-        });
-        await sleep(newBoxState.boxPause * 1000);
-      }
-      this.box = newBoxState;
-    }
-    const boxSetup = await this.setupBox();
-    this.logger.debug(`Box setup successfully:${boxSetup}`);
-    if (!boxSetup) {
-      this.boxTimingState = {
-        endsAt: -1,
-        startedAt: -1,
-        state: BoxState.Removed,
-      };
-      await this.publishBox();
-      return;
-    }
-    this.boxTimingState = {
-      endsAt: dayjs().add(this.box.boxDuration, 'seconds').unix(),
-      startedAt: dayjs().unix(),
-      state: BoxState.Active,
-    };
-    let counter = 0;
-    let isInitialized = false;
-    while (!isInitialized && counter < 10) {
-      const connection = this.sharedService.getRpcConnection();
-      isInitialized = await initBoxIx(
-        this.getBoxPda(),
-        this.box.boxId,
-        this.box,
-        this.activeNft,
-        connection,
-        counter,
-      );
-
-      counter++;
-    }
-
-    if (!isInitialized) {
-      this.boxTimingState = {
-        endsAt: -1,
-        startedAt: dayjs().unix(),
-        state: BoxState.Paused,
-      };
-      await this.publishBox();
-      return;
-    }
-
-    await this.getBox();
-
-    this.timer = await sleep(this.box.boxDuration * 1000);
-
-    if (!this.hasPreResolved) {
-      while (this.additionalTimeout > 0) {
-        let sleepAmount = this.additionalTimeout;
-        this.additionalTimeout = 0;
-        await sleep(sleepAmount * 1000);
+        return;
       }
 
-      await this.cooldown();
+      await this.getBox();
+
+      await this.storeBoxTimingState();
+      this.timer = await sleep(this.box.boxDuration * 1000);
+
+      if (!this.hasPreResolved) {
+        while (this.additionalTimeout > 0) {
+          let sleepAmount = this.additionalTimeout;
+          this.additionalTimeout = 0;
+          await sleep(sleepAmount * 1000);
+        }
+
+        await this.cooldown();
+      }
+      this.hasPreResolved = false;
+    } else {
+      try {
+        const { activeBid, bidder, nftId, nftUri, winner } = initBoxData;
+        const boxTimingState = await this.getBoxTimingState();
+        this.boxTimingState = {
+          endsAt: boxTimingState.endsAt,
+          state: BoxState.Active,
+          startedAt: dayjs().unix(),
+        };
+        await this.storeBoxTimingState();
+        const jsonNftdata = await (await fetch(nftUri)).json();
+
+        const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
+        this.activeNft = {
+          boxId: this.box.boxId.toString(),
+          boxPool: this.box.boxPool,
+          isInBox: true,
+          nftId,
+          nftImage: jsonNftdata.image,
+          nftName: jsonNftdata.name,
+          minted: !!winner,
+          nftUri,
+          reshuffleCount: 0,
+        };
+        this.bidder = bidder.toString();
+
+        await this.getDbBoxBidders();
+
+        this.box = { ...newBoxState };
+        if (winner) {
+          this.isWon = true;
+        }
+        this.currentBid = activeBid;
+        await this.publishBox();
+        this.timer = await sleep(this.box.boxDuration * 1000);
+        this.hasPreResolved = false;
+        await this.cooldown();
+      } catch (error) {
+        this.logger.error(error);
+      }
     }
-    this.hasPreResolved = false;
   }
   async cooldown() {
     await this.resolveBox();
@@ -246,10 +267,11 @@ export class BoxConfigWorker {
         await this.nftService.updateNft(this.activeNft.nftId, false);
       } else {
         this.logger.log('Resolved NFT');
-        // await this.nftService.updateNft(this.activeNft.nftId, true);
+        await this.nftService.updateNft(this.activeNft.nftId, true);
       }
 
       await this.getBox();
+      await this.deleteBoxBidders();
       if (!resolved && !this.hasResolved && hasTriedResolving) {
         const boxAddress = this.getBoxPda();
         const [boxTreasury] = PublicKey.findProgramAddressSync(
@@ -324,9 +346,12 @@ export class BoxConfigWorker {
 
         this.activeNft = randomNft;
       } while (acknowledged === 0);
-      await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
-
-      return true;
+      if (this.activeNft) {
+        await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
+        return true;
+      } else {
+        return false;
+      }
     } catch (error) {
       console.log(error);
       this.logger.error(error.message);
@@ -358,7 +383,8 @@ export class BoxConfigWorker {
 
       const action = placeBidIx[0].data[8];
       if (
-        (action === 2 || action === 3) &&
+        (action === ActionType.BidMintPass ||
+          action === ActionType.BuyMintPass) &&
         this.box.boxPool !== BoxPool.PreSale
       ) {
         throw new BadRequestException(
@@ -367,7 +393,7 @@ export class BoxConfigWorker {
       }
 
       if (
-        (action === 0 || action === 2) &&
+        (action === ActionType.Bid || action === ActionType.BidMintPass) &&
         this.boxTimingState.state === BoxState.Cooldown
       ) {
         throw new BadRequestException(
@@ -390,19 +416,22 @@ export class BoxConfigWorker {
       if (
         relatedUser &&
         permittedPool > this.box.boxPool &&
-        action !== 2 &&
-        action !== 3
+        action !== ActionType.BidMintPass &&
+        action !== ActionType.BidMintPass
       ) {
         throw new BadRequestException(
           "Invalid role. You don't have permission to bid on this box!",
         );
       }
       const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
-      //HERE
-      if ((action === 0 || action === 2) && remainingSeconds <= 2) {
+
+      if (
+        (action === ActionType.Bid || action === ActionType.BidMintPass) &&
+        remainingSeconds <= 2
+      ) {
         throw new BadRequestException('Box expired!');
       }
-      //HERE
+
       if (
         this.boxTimingState.state === BoxState.Cooldown &&
         remainingSeconds <= 2
@@ -411,31 +440,30 @@ export class BoxConfigWorker {
       }
 
       this.bidsCount++;
-      //HERE:test
-      // await this.getBox();
+
       const rpcConnection = this.sharedService.getRpcConnection();
 
-      const existingAuth = await parseAndValidatePlaceBidTx(
-        transaction,
-        this.bidders,
-        this.hasResolved,
-        relatedUser,
-        this.boxTimingState,
-        rpcConnection,
-        this.activeNft,
-      );
+      const { existingAuth, bidAmount, bidder, username } =
+        await parseAndValidatePlaceBidTx(
+          transaction,
+          this.bidders,
+          this.hasResolved,
+          relatedUser,
+          this.boxTimingState,
+          rpcConnection,
+          this.activeNft,
+        );
 
       if (existingAuth) {
         this.subscriberService.pubSub.publish('overbidden', {
           overbidden: existingAuth,
         });
       }
-      //HERE:test
-      // await this.getBox();
+      await this.addBoxBidder(bidAmount, bidder, username);
       if (
         remainingSeconds < this.secondsExtending &&
         this.boxTimingState.state === BoxState.Active &&
-        (action === 0 || action === 2)
+        (action === ActionType.Bid || action === ActionType.BidMintPass)
       ) {
         this.boxTimingState = {
           endsAt:
@@ -464,7 +492,7 @@ export class BoxConfigWorker {
 
       //HERE:
       if (
-        (action === 1 || action === 3) &&
+        (action === ActionType.Buy || action === ActionType.BuyMintPass) &&
         this.boxTimingState.state === BoxState.Active &&
         remainingSeconds >= 5
       ) {
@@ -473,17 +501,15 @@ export class BoxConfigWorker {
         this.cooldown();
       }
 
-      if (action === 0 || action === 2) {
+      if (action === ActionType.Bid || action === ActionType.BidMintPass) {
         await this.statsService.increaseBids();
       }
 
-      if (action === 1 || action === 3) {
+      if (action === ActionType.Buy || action === ActionType.BuyMintPass) {
         await this.statsService.increaseSales(
           activeBid.toNumber() / LAMPORTS_PER_SOL,
         );
-      }
-
-      if (action === 1 || action === 3) {
+        await this.deleteBoxBidders();
         await this.nftService.updateNft(this.activeNft.nftId, true);
       }
 
@@ -528,5 +554,89 @@ export class BoxConfigWorker {
       bidders: this.bidders,
       boxId: this.box.boxId.toString(),
     };
+  }
+
+  async storeUserBidData(
+    user: string,
+    bidAmount: number,
+    usedMintPass?: string,
+  ) {
+    try {
+      const boxData = await this.boxConfigRepo.findOne({
+        where: { boxId: this.box.boxId },
+      });
+      boxData.userBidData.push({
+        bidAmount,
+        bidAt: new Date(),
+        nftId: this.activeNft.nftId,
+        nftUri: this.activeNft.nftUri,
+        usedMintPass,
+        username: '',
+        walletAddress: user,
+      });
+    } catch (error) {
+      this.logger.error(error.message);
+    }
+  }
+  async getDbBoxBidders() {
+    try {
+      const box = await this.boxConfigRepo.findOne({
+        where: { boxId: this.box.boxId },
+      });
+      this.bidders = box.userBidData;
+    } catch (error) {
+      this.logger.error(error.message);
+    }
+  }
+
+  async addBoxBidder(bidAmount: number, user: string, username: string) {
+    try {
+      const box = await this.boxConfigRepo.findOne({
+        where: { boxId: this.box.boxId },
+      });
+      box.userBidData.push({
+        bidAmount,
+        bidAt: new Date(),
+        nftId: this.activeNft.nftId,
+        nftUri: this.activeNft.nftUri,
+        walletAddress: user,
+        username,
+      });
+      await this.boxConfigRepo.save(box);
+    } catch (error) {
+      this.logger.error(error.message);
+    }
+  }
+  async deleteBoxBidders() {
+    try {
+      const box = await this.boxConfigRepo.findOne({
+        where: { boxId: this.box.boxId },
+      });
+      box.userBidData = [];
+      await this.boxConfigRepo.save(box);
+    } catch (error) {
+      this.logger.error(error.message);
+    }
+  }
+  async storeBoxTimingState() {
+    try {
+      const box = await this.boxConfigRepo.findOne({
+        where: { boxId: this.box.boxId },
+      });
+      box.boxTimingState = this.boxTimingState;
+    } catch (error) {
+      this.logger.log(error.message);
+    }
+  }
+
+  async getBoxTimingState() {
+    try {
+      const box = await this.boxConfigRepo.findOne({
+        where: { boxId: this.box.boxId },
+      });
+      return box.boxTimingState;
+    } catch (error) {
+      this.logger.log(error.message);
+    }
   }
 }

@@ -22,7 +22,6 @@ export class RecoverBoxService {
 
   async deleteRecoveredBox(boxId: string) {
     await this.recoverBoxRepo.deleteRecoveredBox(boxId);
-
     this.logger.log(`Deleted boxRecover data with id: ${boxId}`);
   }
 
