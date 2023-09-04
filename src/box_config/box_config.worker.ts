@@ -550,7 +550,6 @@ export class BoxConfigWorker {
       activeNft: this.activeNft,
       activeBid: this.currentBid,
       bidder: this.bidder,
-      boxState: this.boxTimingState.state,
       isWon: this.isWon,
       bidders: this.bidders,
       boxId: this.box.boxId.toString(),
