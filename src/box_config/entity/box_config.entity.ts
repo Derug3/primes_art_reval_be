@@ -1,6 +1,6 @@
 import { BoxType } from 'src/enum/enums';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { Bidder, BoxPool, BoxState } from '../types/box_config.types';
+import { BoxPool, BoxState } from '../types/box_config.types';
 
 @Entity()
 export class BoxConfig {
@@ -12,6 +12,8 @@ export class BoxConfig {
   executionsCount: number;
   @Column({ type: 'float' })
   boxDuration: number;
+  @Column({ nullable: true, type: 'float' })
+  initialDelay?: number;
   @Column({ nullable: true, type: 'float' })
   buyNowPrice?: number;
   @Column({ nullable: true, type: 'float' })
@@ -26,12 +28,4 @@ export class BoxConfig {
   boxState: BoxState;
   @Column({ type: 'enum', enum: BoxType })
   boxType: BoxType;
-  @Column({ type: 'jsonb', nullable: true })
-  userBidData: Bidder[];
-}
-export enum ActionType {
-  Bid,
-  Buy,
-  BidMintPass,
-  BuyMintPass,
 }

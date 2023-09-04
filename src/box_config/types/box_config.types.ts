@@ -61,26 +61,18 @@ export class BoxConfigOutput extends BoxConfigInput {
   bidder: string;
   @Field()
   isWon: boolean;
-  @Field(() => [Bidder])
-  bidders: Bidder[];
+  @Field(() => [Bidders])
+  bidders: Bidders[];
 }
 
 @ObjectType()
-export class Bidder {
-  @Field({ nullable: true })
-  username?: string;
+export class Bidders {
+  @Field()
+  username: string;
   @Field()
   bidAmount: number;
   @Field()
   walletAddress: string;
-  @Field({ nullable: true })
-  usedMintPass?: string;
-  @Field()
-  bidAt: Date;
-  @Field()
-  nftId: string;
-  @Field()
-  nftUri: string;
 }
 
 export enum BoxPool {

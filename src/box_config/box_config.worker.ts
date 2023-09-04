@@ -1,9 +1,9 @@
 import { BadRequestException, Logger } from '@nestjs/common';
 import { SubscriberService } from 'src/subscriber/subscriber.service';
-import { ActionType, BoxConfig } from './entity/box_config.entity';
+import { BoxConfig } from './entity/box_config.entity';
 import { BoxConfigRepository } from './repository/box.config.repository';
 import {
-  Bidder,
+  Bidders,
   BoxConfigOutput,
   BoxPool,
   BoxState,
@@ -50,7 +50,7 @@ export class BoxConfigWorker {
   bidder: string;
   isWon: boolean;
   hasResolved: boolean;
-  bidders: Bidder[];
+  bidders: Bidders[];
   hasPreResolved: boolean;
 
   secondsExtending: number;
@@ -92,7 +92,6 @@ export class BoxConfigWorker {
 
     const initBoxData = await tryInitBox(this.getBoxPda());
 
-    this.secondsExtending = await this.statsService.getStatsExtending();
     if (!initBoxData) {
       this.currentBid = 0;
       this.bidsCount = 0;
@@ -103,6 +102,7 @@ export class BoxConfigWorker {
       this.additionalTimeout = 0;
       this.cooldownAdditionalTimeout = 0;
 
+      this.secondsExtending = await this.statsService.getStatsExtending();
       if (this.box.boxId) {
         const newBoxState = await this.boxConfigRepo.getBuyId(this.box.boxId);
 
@@ -198,7 +198,9 @@ export class BoxConfigWorker {
         };
         this.bidder = bidder.toString();
 
-        await this.getDbBoxBidders();
+        this.bidders = [
+          { bidAmount: activeBid, walletAddress: bidder, username: bidder },
+        ];
 
         this.box = { ...newBoxState };
         if (winner) {
@@ -269,7 +271,6 @@ export class BoxConfigWorker {
       }
 
       await this.getBox();
-      await this.deleteBoxBidders();
       if (!resolved && !this.hasResolved && hasTriedResolving) {
         const boxAddress = this.getBoxPda();
         const [boxTreasury] = PublicKey.findProgramAddressSync(
@@ -381,8 +382,7 @@ export class BoxConfigWorker {
 
       const action = placeBidIx[0].data[8];
       if (
-        (action === ActionType.BidMintPass ||
-          action === ActionType.BuyMintPass) &&
+        (action === 2 || action === 3) &&
         this.box.boxPool !== BoxPool.PreSale
       ) {
         throw new BadRequestException(
@@ -391,7 +391,7 @@ export class BoxConfigWorker {
       }
 
       if (
-        (action === ActionType.Bid || action === ActionType.BidMintPass) &&
+        (action === 0 || action === 2) &&
         this.boxTimingState.state === BoxState.Cooldown
       ) {
         throw new BadRequestException(
@@ -414,22 +414,19 @@ export class BoxConfigWorker {
       if (
         relatedUser &&
         permittedPool > this.box.boxPool &&
-        action !== ActionType.BidMintPass &&
-        action !== ActionType.BidMintPass
+        action !== 2 &&
+        action !== 3
       ) {
         throw new BadRequestException(
           "Invalid role. You don't have permission to bid on this box!",
         );
       }
       const remainingSeconds = this.boxTimingState.endsAt - dayjs().unix();
-
-      if (
-        (action === ActionType.Bid || action === ActionType.BidMintPass) &&
-        remainingSeconds <= 2
-      ) {
+      //HERE
+      if ((action === 0 || action === 2) && remainingSeconds <= 2) {
         throw new BadRequestException('Box expired!');
       }
-
+      //HERE
       if (
         this.boxTimingState.state === BoxState.Cooldown &&
         remainingSeconds <= 2
@@ -438,30 +435,31 @@ export class BoxConfigWorker {
       }
 
       this.bidsCount++;
-
+      //HERE:test
+      // await this.getBox();
       const rpcConnection = this.sharedService.getRpcConnection();
 
-      const { existingAuth, bidAmount, bidder, username } =
-        await parseAndValidatePlaceBidTx(
-          transaction,
-          this.bidders,
-          this.hasResolved,
-          relatedUser,
-          this.boxTimingState,
-          rpcConnection,
-          this.activeNft,
-        );
+      const existingAuth = await parseAndValidatePlaceBidTx(
+        transaction,
+        this.bidders,
+        this.hasResolved,
+        relatedUser,
+        this.boxTimingState,
+        rpcConnection,
+        this.activeNft,
+      );
 
       if (existingAuth) {
         this.subscriberService.pubSub.publish('overbidden', {
           overbidden: existingAuth,
         });
       }
-      await this.addBoxBidder(bidAmount, bidder, username);
+      //HERE:test
+      // await this.getBox();
       if (
         remainingSeconds < this.secondsExtending &&
         this.boxTimingState.state === BoxState.Active &&
-        (action === ActionType.Bid || action === ActionType.BidMintPass)
+        (action === 0 || action === 2)
       ) {
         this.boxTimingState = {
           endsAt:
@@ -490,7 +488,7 @@ export class BoxConfigWorker {
 
       //HERE:
       if (
-        (action === ActionType.Buy || action === ActionType.BuyMintPass) &&
+        (action === 1 || action === 3) &&
         this.boxTimingState.state === BoxState.Active &&
         remainingSeconds >= 5
       ) {
@@ -499,15 +497,14 @@ export class BoxConfigWorker {
         this.cooldown();
       }
 
-      if (action === ActionType.Bid || action === ActionType.BidMintPass) {
+      if (action === 0 || action === 2) {
         await this.statsService.increaseBids();
       }
 
-      if (action === ActionType.Buy || action === ActionType.BuyMintPass) {
+      if (action === 1 || action === 3) {
         await this.statsService.increaseSales(
           activeBid.toNumber() / LAMPORTS_PER_SOL,
         );
-        await this.deleteBoxBidders();
         await this.nftService.updateNft(this.activeNft.nftId, true);
       }
 
@@ -552,68 +549,5 @@ export class BoxConfigWorker {
       bidders: this.bidders,
       boxId: this.box.boxId.toString(),
     };
-  }
-
-  async storeUserBidData(
-    user: string,
-    bidAmount: number,
-    usedMintPass?: string,
-  ) {
-    try {
-      const boxData = await this.boxConfigRepo.findOne({
-        where: { boxId: this.box.boxId },
-      });
-      boxData.userBidData.push({
-        bidAmount,
-        bidAt: new Date(),
-        nftId: this.activeNft.nftId,
-        nftUri: this.activeNft.nftUri,
-        usedMintPass,
-        username: '',
-        walletAddress: user,
-      });
-    } catch (error) {
-      this.logger.error(error.message);
-    }
-  }
-  async getDbBoxBidders() {
-    try {
-      const box = await this.boxConfigRepo.findOne({
-        where: { boxId: this.box.boxId },
-      });
-      this.bidders = box.userBidData;
-    } catch (error) {
-      this.logger.error(error.message);
-    }
-  }
-
-  async addBoxBidder(bidAmount: number, user: string, username: string) {
-    try {
-      const box = await this.boxConfigRepo.findOne({
-        where: { boxId: this.box.boxId },
-      });
-      box.userBidData.push({
-        bidAmount,
-        bidAt: new Date(),
-        nftId: this.activeNft.nftId,
-        nftUri: this.activeNft.nftUri,
-        walletAddress: user,
-        username,
-      });
-      await this.boxConfigRepo.save(box);
-    } catch (error) {
-      this.logger.error(error.message);
-    }
-  }
-  async deleteBoxBidders() {
-    try {
-      const box = await this.boxConfigRepo.findOne({
-        where: { boxId: this.box.boxId },
-      });
-      box.userBidData = [];
-      await this.boxConfigRepo.save(box);
-    } catch (error) {
-      this.logger.error(error.message);
-    }
   }
 }
