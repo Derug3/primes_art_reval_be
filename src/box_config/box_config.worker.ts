@@ -118,7 +118,15 @@ export class BoxConfigWorker {
         this.box = newBoxState;
       }
       const boxSetup = await this.setupBox();
-      this.logger.debug(`Box setup successfully:${boxSetup}`);
+      if (boxSetup) {
+        this.logger.debug(
+          `Box #${this.box.boxId} setup successfully: ${boxSetup}`,
+        );
+      } else {
+        this.logger.warn(
+          `Box #${this.box.boxId} setup successfully: ${boxSetup}`,
+        );
+      }
       if (!boxSetup) {
         this.boxTimingState = {
           endsAt: -1,
@@ -150,6 +158,9 @@ export class BoxConfigWorker {
       }
 
       if (!isInitialized) {
+        this.logger.warn(
+          `Pausing box with id ${this.box.boxId} - non initialized`,
+        );
         this.boxTimingState = {
           endsAt: -1,
           startedAt: dayjs().unix(),
@@ -166,7 +177,7 @@ export class BoxConfigWorker {
 
       if (!this.hasPreResolved) {
         while (this.additionalTimeout > 0) {
-          let sleepAmount = this.additionalTimeout;
+          const sleepAmount = this.additionalTimeout;
           this.additionalTimeout = 0;
           await sleep(sleepAmount * 1000);
         }
@@ -302,11 +313,11 @@ export class BoxConfigWorker {
         this.box.boxPool,
       );
 
-      this.logger.log(`Got ${nfts.length} from DB`);
+      this.logger.log(`Got ${nfts.length} from DB for box#${this.box.boxId}`);
 
       if (this.activeNft) {
         await this.redisService.del(this.activeNft.nftId);
-        this.logger.log(`Deleted key from redis`);
+        this.logger.log(`Deleted key "${this.activeNft.nftId}" from redis`);
       }
 
       const storedInRedis = await this.redisService.keys('*');
@@ -329,7 +340,7 @@ export class BoxConfigWorker {
         nfts = nonShuffled;
       }
       let acknowledged = 0;
-      this.logger.log(`Box setup with available NFTs: ${nfts.length}`);
+      this.logger.log(`Box #${this.box.boxId} setup with available NFTs: ${nfts.length}`);
       if (nfts.length === 0) return false;
       do {
         const rand = Math.round(Math.random() * (nfts.length - 1));

@@ -305,7 +305,6 @@ export const initBoxIx = async (
 ) => {
   try {
     const authority = getAuthorityAsSigner();
-    console.log(box.bidStartPrice, 'BSP');
 
     const ix = await program.methods
       .initBox(boxId.toString(), {
@@ -342,7 +341,7 @@ export const initBoxIx = async (
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
-    console.log(error);
+    console.error(`Error init box #${boxId}`, error);
 
     emitToWebhook({
       boxId: box.boxId,
