@@ -1,6 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { rolesEndpoint } from 'src/box_config/utilities/helpers';
+import {
+  checkIfMessageIsSigned,
+  rolesEndpoint,
+} from 'src/box_config/utilities/helpers';
 import { DiscordRole, User } from './entity/user.entity';
 import { UserRepository } from './repository/user.repository';
 
@@ -9,8 +16,14 @@ export class UserService {
   constructor(
     @InjectRepository(UserRepository) private readonly userRepo: UserRepository,
   ) {}
-  async storeUsers() {
+  async storeUsers(signedMessage: string, authority: string) {
     try {
+      const isVerified = checkIfMessageIsSigned(
+        signedMessage,
+        'Update Primes Mint',
+        authority,
+      );
+      if (!isVerified) throw new UnauthorizedException();
       const users = await (await fetch(rolesEndpoint)).json();
       const existingUsers = await this.userRepo.find();
       if (existingUsers && existingUsers.length > 0)
