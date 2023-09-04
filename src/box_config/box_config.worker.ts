@@ -286,7 +286,7 @@ export class BoxConfigWorker {
         await this.nftService.updateNft(this.activeNft.nftId, false);
       } else {
         this.logger.log('Resolved NFT');
-        await this.nftService.updateNft(this.activeNft.nftId, true);
+        // await this.nftService.updateNft(this.activeNft.nftId, true);
       }
 
       await this.getBox();
@@ -364,12 +364,9 @@ export class BoxConfigWorker {
 
         this.activeNft = randomNft;
       } while (acknowledged === 0);
-      if (this.activeNft) {
-        await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
-        return true;
-      } else {
-        return false;
-      }
+      await this.nftService.toggleNftBoxState(this.activeNft.nftId, true);
+
+      return true;
     } catch (error) {
       console.log(error);
       this.logger.error(error.message);
@@ -524,6 +521,9 @@ export class BoxConfigWorker {
         await this.statsService.increaseSales(
           activeBid.toNumber() / LAMPORTS_PER_SOL,
         );
+      }
+
+      if (action === 1 || action === 3) {
         await this.nftService.updateNft(this.activeNft.nftId, true);
       }
 
