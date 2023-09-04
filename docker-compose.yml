@@ -5,7 +5,7 @@ services:
     build: ./
     container_name: primes_api
     ports:
-      - 9000:9000
+      - "${APP_EXTERNAL_PORT:-9000}:9000"
     environment:
       NODE_ENV: ${NODE_ENV:-development}
     volumes:
@@ -20,7 +20,7 @@ services:
     container_name: primes_redis
     image: redis:latest
     ports:
-      - 6379:6379
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
     environment:
       REDIS_USERNAME: ${REDIS_USERNAME}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -43,7 +43,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - '5432:5432'
+      - "${DB_EXTERNAL_PORT:-5432}:5432"
     networks:
       - primes_network
     volumes:
