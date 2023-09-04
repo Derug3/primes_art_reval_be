@@ -118,7 +118,15 @@ export class BoxConfigWorker {
         this.box = newBoxState;
       }
       const boxSetup = await this.setupBox();
-      this.logger.debug(`Box setup successfully:${boxSetup}`);
+      if (boxSetup) {
+        this.logger.debug(
+          `Box #${this.box.boxId} setup successfully: ${boxSetup}`,
+        );
+      } else {
+        this.logger.warn(
+          `Box #${this.box.boxId} setup successfully: ${boxSetup}`,
+        );
+      }
       if (!boxSetup) {
         this.boxTimingState = {
           endsAt: -1,
@@ -150,6 +158,9 @@ export class BoxConfigWorker {
       }
 
       if (!isInitialized) {
+        this.logger.warn(
+          `Pausing box with id ${this.box.boxId} - non initialized`,
+        );
         this.boxTimingState = {
           endsAt: -1,
           startedAt: dayjs().unix(),
@@ -166,11 +177,10 @@ export class BoxConfigWorker {
 
       if (!this.hasPreResolved) {
         while (this.additionalTimeout > 0) {
-          let sleepAmount = this.additionalTimeout;
+          const sleepAmount = this.additionalTimeout;
           this.additionalTimeout = 0;
           await sleep(sleepAmount * 1000);
         }
-
         await this.cooldown();
       }
       this.hasPreResolved = false;
@@ -199,17 +209,22 @@ export class BoxConfigWorker {
           reshuffleCount: 0,
         };
         this.bidder = bidder.toString();
-
         await this.getDbBoxBidders();
-
         this.box = { ...newBoxState };
         if (winner) {
           this.isWon = true;
         }
         this.currentBid = activeBid;
         await this.publishBox();
-        this.timer = await sleep(this.box.boxDuration * 1000);
+        this.timer = await sleep(
+          (boxTimingState.endsAt - dayjs().unix()) * 1000,
+        );
         this.hasPreResolved = false;
+        while (this.additionalTimeout > 0) {
+          let sleepAmount = this.additionalTimeout;
+          this.additionalTimeout = 0;
+          await sleep(sleepAmount * 1000);
+        }
         await this.cooldown();
       } catch (error) {
         this.logger.error(error);
@@ -302,15 +317,13 @@ export class BoxConfigWorker {
         this.box.boxPool,
       );
 
-      this.logger.log(`Got ${nfts.length} from DB`);
+      this.logger.log(`Got ${nfts.length} from DB for box#${this.box.boxId}`);
 
       if (this.activeNft) {
         await this.redisService.del(this.activeNft.nftId);
-        this.logger.log(`Deleted key from redis`);
+        this.logger.log(`Deleted key "${this.activeNft.nftId}" from redis`);
       }
-
       const storedInRedis = await this.redisService.keys('*');
-
       nfts = nfts.filter((nft) => !storedInRedis.includes(nft.nftId));
 
       if (nfts.length === 0) {
@@ -324,26 +337,35 @@ export class BoxConfigWorker {
 
         return false;
       }
-      const nonShuffled = nfts.filter((n) => n.reshuffleCount === 0);
-      if (nonShuffled.length !== 0) {
-        nfts = nonShuffled;
-      }
+      // const nonShuffled = nfts.filter((n) => n.reshuffleCount === 0);
+      // if (nonShuffled.length !== 0) {
+      //   nfts = nonShuffled;
+      // }
       let acknowledged = 0;
-      this.logger.log(`Box setup with available NFTs: ${nfts.length}`);
+      this.logger.log(`Box #${this.box.boxId} setup with available NFTs: ${nfts.length}`);
       if (nfts.length === 0) return false;
+      let counter = nfts.length;
+
       do {
+        if (counter === 0) {
+          return false;
+        }
+        counter--;
         const rand = Math.round(Math.random() * (nfts.length - 1));
         const randomNft = nfts[rand];
-        acknowledged = await this.redisService.setnx(
-          randomNft.nftId,
-          JSON.stringify(randomNft),
-        );
         const exists = await checkIfProofPdaExists(
           randomNft.nftId,
           this.sharedService.getRpcConnection(),
         );
-        if (exists) continue;
+        this.logger.log(
+          `Random nft with id ${randomNft.nftId} exist on-chain:${exists}`,
+        );
 
+        if (exists) continue;
+        acknowledged = await this.redisService.setnx(
+          randomNft.nftId,
+          JSON.stringify(randomNft),
+        );
         this.activeNft = randomNft;
       } while (acknowledged === 0);
       if (this.activeNft) {
@@ -624,6 +646,7 @@ export class BoxConfigWorker {
         where: { boxId: this.box.boxId },
       });
       box.boxTimingState = this.boxTimingState;
+      await this.boxConfigRepo.save(box);
     } catch (error) {
       this.logger.log(error.message);
     }

@@ -22,6 +22,8 @@ import { BoxPool } from 'src/box_config/types/box_config.types';
 import { StatisticsService } from 'src/statistics/statistics.service';
 import { PublicKey } from '@solana/web3.js';
 import { SharedService } from 'src/shared/shared.service';
+import { IncomingWebhookSendArguments } from '@slack/webhook';
+import { SlackWebhookAdminService } from '../shared/slack-webhook-admin.service';
 @Injectable()
 export class NftService implements OnModuleInit {
   logger: Logger = new Logger(NftService.name);
@@ -31,6 +33,7 @@ export class NftService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly statsService: StatisticsService,
     private readonly sharedService: SharedService,
+    private readonly slackAdminWebhook: SlackWebhookAdminService,
   ) {}
   async onModuleInit() {
     try {
@@ -47,18 +50,17 @@ export class NftService implements OnModuleInit {
   async storeNfts(signedMessage: string, authority: string) {
     try {
       const cdnUrl = this.configService.get<string>('NFT_CND_URL');
-      this.logger.log(`Started inserting of nfts!`);
-      const cdnNfts = await (await fetch(cdnUrl, { method: 'GET' })).json();
-      if (cdnNfts.error) {
-        throw new BadRequestException(cdnNfts.error_message);
-      }
-      //TODO:comment in
       const isVerified = checkIfMessageIsSigned(
         signedMessage,
         'Update Primes Mint',
         authority,
       );
       if (!isVerified) throw new UnauthorizedException();
+      this.logger.log(`Started inserting of nfts!`);
+      const cdnNfts = await (await fetch(cdnUrl, { method: 'GET' })).json();
+      if (cdnNfts.error) {
+        throw new BadRequestException(cdnNfts.error_message);
+      }
 
       const items = cdnNfts.data.result;
 
@@ -82,14 +84,10 @@ export class NftService implements OnModuleInit {
           }
         }),
       );
-      const chunkedNfts = chunk(
-        nfts.filter((n) => n !== null),
-        200,
-      );
+      const validNfts = nfts.filter((n) => n !== null);
+      await this.nftRepository.save(validNfts, { chunk: 100 });
 
-      for (const nftsChunk of chunkedNfts) {
-        await this.nftRepository.save(nftsChunk);
-      }
+      this.emitAdminWebhookNfts(validNfts, authority, 'Save NFTs');
 
       return true;
     } catch (error) {
@@ -117,6 +115,7 @@ export class NftService implements OnModuleInit {
         const filteredPoolNfts = boxNfts.filter(
           (b) => b.boxId === null || b.boxId == '0',
         );
+
         if (filteredPoolNfts.length > 0) return filteredPoolNfts;
         else
           return await this.nftRepository.find({
@@ -134,7 +133,7 @@ export class NftService implements OnModuleInit {
       } else {
         nft.reshuffleCount++;
       }
-      this.logger.verbose(`NFT with id:${nftId} is minted:${hasMinted}`);
+      this.logger.verbose(`NFT with id:${nftId} is minted: ${hasMinted}`);
       await this.nftRepository.save(nft);
     } catch (error) {
       this.logger.error(error.message);
@@ -214,6 +213,8 @@ export class NftService implements OnModuleInit {
       const allNFts = await this.nftRepository.find();
 
       await this.nftRepository.remove(allNFts);
+
+      this.emitAdminWebhookNfts(allNFts, authority, 'Delete all NFTs');
       return true;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -254,5 +255,54 @@ export class NftService implements OnModuleInit {
       console.log(error);
       throw new BadRequestException('Error');
     }
+  }
+
+  private emitAdminWebhookNfts(nfts: Nft[], authority: string, title: string) {
+    this.slackAdminWebhook
+      .sendMessage({
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              text: title,
+              type: 'plain_text',
+              emoji: true,
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*NFTs count*\n${nfts.length}`,
+              },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Authority*\n<https://solscan.io/account/${authority}|${authority}>`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Program*\n<https://solscan.io/account/${
+                  process.env.PROGRAM_ID as string
+                }|${process.env.PROGRAM_ID as string}>`,
+              },
+            ],
+          },
+        ],
+      } as IncomingWebhookSendArguments)
+      .then(() => {
+        this.logger.debug('Sent webhook admin event "Save NFTs"');
+      })
+      .catch((e) => {
+        this.logger.error(
+          'Error send webhook admin event "Save NFTs"',
+          e.stack,
+        );
+      });
   }
 }

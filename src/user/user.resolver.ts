@@ -11,8 +11,11 @@ export class UserResolver {
   constructor(private readonly userService: UserService) {}
 
   @Mutation(() => Boolean)
-  storeUsers() {
-    return this.userService.storeUsers();
+  storeUsers(
+    @Args('signedMessage') signedMessage: string,
+    @Args('authority') authority: string,
+  ) {
+    return this.userService.storeUsers(signedMessage, authority);
   }
 
   @Query(() => User, { nullable: true })

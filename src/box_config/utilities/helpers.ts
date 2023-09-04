@@ -309,7 +309,9 @@ export const initBoxIx = async (
     const ix = await program.methods
       .initBox(boxId.toString(), {
         bidIncrease: new BN(box.bidIncrease * LAMPORTS_PER_SOL),
-        bidStartPrice: new BN(box.bidStartPrice * LAMPORTS_PER_SOL),
+        bidStartPrice: box.bidStartPrice
+          ? new BN(box.bidStartPrice * LAMPORTS_PER_SOL)
+          : null,
         buyNowPrice: box.buyNowPrice
           ? new BN(box.buyNowPrice * LAMPORTS_PER_SOL)
           : null,
@@ -324,7 +326,6 @@ export const initBoxIx = async (
         systemProgram: SystemProgram.programId,
       })
       .instruction();
-
     const txMessage = new TransactionMessage({
       instructions: [ix],
       payerKey: authority.publicKey,
@@ -340,18 +341,16 @@ export const initBoxIx = async (
     await connection.confirmTransaction(txSig);
     return true;
   } catch (error) {
-    console.log(error);
+    console.error(`Error init box #${boxId}`, error);
 
-    if (counter >= 2) {
-      emitToWebhook({
-        boxId: box.boxId,
-        eventName: 'rpc-error',
-        rpcUrl: connection.rpcEndpoint,
-        rpcResponse: error.message,
-        event: 'InitBox',
-        counter,
-      });
-    }
+    emitToWebhook({
+      boxId: box.boxId,
+      eventName: 'rpc-error',
+      rpcUrl: connection.rpcEndpoint,
+      rpcResponse: error.message,
+      event: 'InitBox',
+      counter,
+    });
 
     return false;
   }
