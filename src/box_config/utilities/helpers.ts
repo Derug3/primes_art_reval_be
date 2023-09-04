@@ -305,7 +305,6 @@ export const initBoxIx = async (
 ) => {
   try {
     const authority = getAuthorityAsSigner();
-    console.log(box.bidStartPrice, 'BSP');
 
     const ix = await program.methods
       .initBox(boxId.toString(), {

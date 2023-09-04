@@ -116,6 +116,7 @@ export class NftService implements OnModuleInit {
         const filteredPoolNfts = boxNfts.filter(
           (b) => b.boxId === null || b.boxId == '0',
         );
+
         if (filteredPoolNfts.length > 0) return filteredPoolNfts;
         else
           return await this.nftRepository.find({
