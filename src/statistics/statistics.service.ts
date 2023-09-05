@@ -56,7 +56,11 @@ export class StatisticsService implements OnModuleInit {
         await this.statsRepo.save(stats);
       }
     } catch (error) {
-      console.log(error);
+      this.logger.error(
+        `Error init statistics module: ${error.message}`,
+        error.stack,
+      );
+      console.error(error);
     }
   }
 
@@ -84,7 +88,8 @@ export class StatisticsService implements OnModuleInit {
         getLiveStats: stats,
       });
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      this.logger.error(`Error increase sales: ${error.message}`, error.stack);
     }
   }
   async updateSecondsExtending(
@@ -192,7 +197,8 @@ export class StatisticsService implements OnModuleInit {
       stats[0].totalSales = totalSales;
       await this.statsRepo.save(stats);
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      this.logger.error(`Error set stats: ${error.message}`, error.stack);
     }
   }
 

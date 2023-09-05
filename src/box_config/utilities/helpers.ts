@@ -24,7 +24,7 @@ import { ActionType, BoxConfig } from '../entity/box_config.entity';
 import { Nft } from 'src/nft/entity/nft.entity';
 import { BoxType } from 'src/enum/enums';
 import { Bidder, BoxPool, BoxTimigState } from '../types/box_config.types';
-import { BadRequestException, Version } from '@nestjs/common';
+import { BadRequestException, Logger, Version } from '@nestjs/common';
 import { User } from 'src/user/entity/user.entity';
 import { roles } from './rolesData';
 import { TOKEN_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
@@ -84,6 +84,7 @@ export const parseAndValidatePlaceBidTx = async (
   boxTimingState: BoxTimigState,
   connection: Connection,
   nft: Nft,
+  logger: Logger,
 ) => {
   let txSig;
   try {
@@ -192,7 +193,12 @@ export const parseAndValidatePlaceBidTx = async (
         });
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      logger.error('Error place bid: ' + error.message, {
+        stack: error.stack,
+        rpcUrl: connection.rpcEndpoint,
+        tx: tx.data,
+      });
     }
     return {
       existingAuth: existingBidProofAuthority,
@@ -201,9 +207,14 @@ export const parseAndValidatePlaceBidTx = async (
       username,
     };
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    logger.error('Error place bid: ' + error.message, {
+      stack: error.stack,
+      rpcUrl: connection.rpcEndpoint,
+      tx: tx.data,
+      txSig,
+    });
 
-    writeFileSync('./error.json', JSON.stringify(error));
     emitToWebhook({
       txSig,
       eventName: 'rpc-error',
@@ -317,7 +328,9 @@ export const initBoxIx = async (
   nft: Nft,
   connection: Connection,
   counter: number,
+  logger: Logger,
 ) => {
+  let versionedTx: VersionedTransaction;
   try {
     const authority = getAuthorityAsSigner();
 
@@ -347,16 +360,24 @@ export const initBoxIx = async (
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
     }).compileToV0Message();
 
-    const versionedTx = new VersionedTransaction(txMessage);
-
+    versionedTx = new VersionedTransaction(txMessage);
     versionedTx.sign([authority]);
 
     const txSig = await connection.sendRawTransaction(versionedTx.serialize());
-
     await confirmTransaction(txSig, connection);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error init box #${boxId}`, error);
+
+    logger.error(`Error init box #${boxId}: ${error.message}`, {
+      stack: error.stack,
+      rpcUrl: connection.rpcEndpoint,
+      boxId: box.boxId,
+      boxAddress: boxAddress.toString(),
+      boxConfig: box,
+      counter,
+      versionedTx,
+    });
 
     emitToWebhook({
       boxId: box.boxId,
@@ -475,6 +496,7 @@ export const getProofPda = (nft: Nft) => {
 
 export const emitToWebhook = (data: any) => {
   console.log(`Emitting to webhook data`);
+  data.runtime = process.env.APP_RUNTIME ?? '';
   fetch(data.eventName ? webHookErrorUrl : webhookUrl, {
     method: 'POST',
     body: JSON.stringify(data),
