@@ -196,7 +196,8 @@ export class BoxConfigWorker {
 
         const endsAt = Math.max(
           dayjs().add(5, 'minutes').unix(),
-          boxTimingState.endsAt - dayjs(lastBidAt ?? new Date()).unix(),
+          (boxTimingState?.endsAt ?? dayjs(new Date()).unix()) -
+            dayjs(lastBidAt ?? new Date()).unix(),
         );
 
         this.boxTimingState = {
