@@ -195,13 +195,13 @@ export class BoxConfigWorker {
         const lastBidAt = this.bidders[this.bidders.length - 1]?.bidAt;
 
         const endsAt = Math.max(
-          dayjs().add(5, 'minutes').unix(),
+          300,
           (boxTimingState?.endsAt ?? dayjs(new Date()).unix()) -
             dayjs(lastBidAt ?? new Date()).unix(),
         );
 
         this.boxTimingState = {
-          endsAt,
+          endsAt: dayjs().add(endsAt, 'seconds').unix(),
           state: BoxState.Active,
           startedAt: dayjs().unix(),
         };
