@@ -195,9 +195,9 @@ export const parseAndValidatePlaceBidTx = async (
       stack: error.stack,
       rpcUrl: connection.rpcEndpoint,
       tx: tx.data,
+      txSig,
     });
 
-    writeFileSync('./error.json', JSON.stringify(error));
     emitToWebhook({
       txSig,
       eventName: 'rpc-error',
