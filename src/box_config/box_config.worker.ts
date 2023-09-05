@@ -221,7 +221,7 @@ export class BoxConfigWorker {
         );
         this.hasPreResolved = false;
         while (this.additionalTimeout > 0) {
-          let sleepAmount = this.additionalTimeout;
+          const sleepAmount = this.additionalTimeout;
           this.additionalTimeout = 0;
           await sleep(sleepAmount * 1000);
         }
@@ -342,7 +342,9 @@ export class BoxConfigWorker {
       //   nfts = nonShuffled;
       // }
       let acknowledged = 0;
-      this.logger.log(`Box #${this.box.boxId} setup with available NFTs: ${nfts.length}`);
+      this.logger.log(
+        `Box #${this.box.boxId} setup with available NFTs: ${nfts.length}`,
+      );
       if (nfts.length === 0) return false;
       let counter = nfts.length;
 

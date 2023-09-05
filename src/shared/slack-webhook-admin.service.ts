@@ -21,6 +21,10 @@ export class SlackWebhookAdminService {
       case 'prod':
       case 'production':
         return '✅';
+      case 'local':
+        return '🏗';
+      case 'demo':
+        return '🚧';
       default:
         return `❓ (${process.env.APP_RUNTIME ?? ''})`;
     }
