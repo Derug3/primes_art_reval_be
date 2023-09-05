@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
-import { AppService } from './app.service';
 import { BoxConfigModule } from './box_config/box_config.module';
 import { typeormConfig } from './typeorm.config';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
@@ -14,6 +12,10 @@ import { UserModule } from './user/user.module';
 import { SubscriberService } from './subscriber/subscriber.service';
 import { StatisticsModule } from './statistics/statistics.module';
 import { SharedModule } from './shared/shared.module';
+import { WinstonModule } from 'nest-winston';
+import * as winston from 'winston';
+import Transport from 'winston-transport';
+import 'winston-daily-rotate-file';
 
 @Module({
   imports: [
@@ -58,8 +60,46 @@ import { SharedModule } from './shared/shared.module';
     UserModule,
     StatisticsModule,
     SharedModule,
+    WinstonModule.forRootAsync({
+      useFactory: () => {
+        const transports: Transport[] = [
+          new winston.transports.DailyRotateFile({
+            filename: `var/log/%DATE%.error.log`,
+            datePattern: 'YYYY-MM-DD-HH',
+            zippedArchive: true,
+            maxSize: '300m',
+            maxFiles: 30,
+            level: 'error',
+          }),
+          new winston.transports.Console({
+            format: winston.format.simple(),
+          }),
+        ];
+
+        const options: winston.LoggerOptions = {
+          level: 'debug',
+          exitOnError: false,
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.prettyPrint(),
+          ),
+          transports: transports,
+          exceptionHandlers: [
+            new winston.transports.DailyRotateFile({
+              filename: 'var/log/%DATE%.exception.log',
+              datePattern: 'YYYY-MM-DD-HH',
+              zippedArchive: true,
+              maxSize: '200m',
+              maxFiles: '30d',
+            }),
+          ],
+        };
+
+        return options;
+      },
+    }),
   ],
 
-  providers: [AppService],
+  providers: [],
 })
 export class AppModule {}

@@ -377,8 +377,8 @@ export class BoxConfigWorker {
         return false;
       }
     } catch (error) {
-      console.log(error);
-      this.logger.error(error.message);
+      console.error(error);
+      this.logger.error(`Error setup box: ${error.message}`, error.stack);
     }
   }
   async publishBox() {
@@ -476,6 +476,7 @@ export class BoxConfigWorker {
           this.boxTimingState,
           rpcConnection,
           this.activeNft,
+          this.logger,
         );
 
       if (existingAuth) {
@@ -539,6 +540,10 @@ export class BoxConfigWorker {
 
       return true;
     } catch (error) {
+      this.logger.error(`Error place bid: ${error.message}`, {
+        stack: error.stack,
+        serializedTransaction,
+      });
       throw new BadRequestException(error.message);
     }
   }
@@ -563,7 +568,8 @@ export class BoxConfigWorker {
       await this.publishBox();
       return boxData.activeBid;
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      this.logger.error('Error getBox: ' + error.message, error.stack);
     }
   }
   mapToDto(): BoxConfigOutput {

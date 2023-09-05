@@ -79,7 +79,11 @@ export class NftService implements OnModuleInit {
             nft.boxPool = fromBoxPoolString(item.box);
             return nft;
           } catch (error) {
-            console.log(error);
+            console.error(error);
+            this.logger.error(
+              `Error create NFT #${item.nftId}: ${error.message}`,
+              error.stack,
+            );
             return null;
           }
         }),
@@ -92,6 +96,7 @@ export class NftService implements OnModuleInit {
       return true;
     } catch (error) {
       console.log(error);
+      this.logger.error(`Error store NFTs: ${error.message}`, error.stack);
       throw new BadRequestException(error.message);
     }
   }
@@ -253,6 +258,7 @@ export class NftService implements OnModuleInit {
       return true;
     } catch (error) {
       console.log(error);
+      this.logger.error(`Error sync data: ${error.message}`, error.stack);
       throw new BadRequestException('Error');
     }
   }
