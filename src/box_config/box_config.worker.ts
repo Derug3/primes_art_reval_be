@@ -192,11 +192,11 @@ export class BoxConfigWorker {
         const boxTimingState = await this.getBoxTimingState();
         await this.getDbBoxBidders();
 
-        const lastBidAt = this.bidders[this.bidders.length - 1].bidAt;
+        const lastBidAt = this.bidders[this.bidders.length - 1]?.bidAt;
 
         const endsAt = Math.max(
           dayjs().add(5, 'minutes').unix(),
-          boxTimingState.endsAt - dayjs(lastBidAt).unix(),
+          boxTimingState.endsAt - dayjs(lastBidAt ?? new Date()).unix(),
         );
 
         this.boxTimingState = {
