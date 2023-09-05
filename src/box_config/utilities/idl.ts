@@ -337,6 +337,47 @@ export type ArtReveal = {
         },
       ];
     },
+    {
+      name: 'createWinningProof';
+      accounts: [
+        {
+          name: 'payer';
+          isMut: true;
+          isSigner: true;
+        },
+        {
+          name: 'winningProof';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'systemProgram';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'bidder';
+          isMut: true;
+          isSigner: false;
+          docs: ['CHECK'];
+        },
+        {
+          name: 'primesMint';
+          isMut: false;
+          isSigner: false;
+        },
+      ];
+      args: [
+        {
+          name: 'nftId';
+          type: 'string';
+        },
+        {
+          name: 'nftUri';
+          type: 'string';
+        },
+      ];
+    },
   ];
   accounts: [
     {
@@ -714,6 +755,11 @@ export type ArtReveal = {
       name: 'NftAlreadyClaimed';
       msg: 'NFT already claimed!';
     },
+    {
+      code: 6013;
+      name: 'TooLowPrice';
+      msg: "Price can't be less than 3 SOL";
+    },
   ];
 };
 
@@ -1053,6 +1099,47 @@ export const IDL: ArtReveal = {
         {
           name: 'amount',
           type: 'u64',
+        },
+      ],
+    },
+    {
+      name: 'createWinningProof',
+      accounts: [
+        {
+          name: 'payer',
+          isMut: true,
+          isSigner: true,
+        },
+        {
+          name: 'winningProof',
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: 'systemProgram',
+          isMut: false,
+          isSigner: false,
+        },
+        {
+          name: 'bidder',
+          isMut: true,
+          isSigner: false,
+          docs: ['CHECK'],
+        },
+        {
+          name: 'primesMint',
+          isMut: false,
+          isSigner: false,
+        },
+      ],
+      args: [
+        {
+          name: 'nftId',
+          type: 'string',
+        },
+        {
+          name: 'nftUri',
+          type: 'string',
         },
       ],
     },
@@ -1432,6 +1519,11 @@ export const IDL: ArtReveal = {
       code: 6012,
       name: 'NftAlreadyClaimed',
       msg: 'NFT already claimed!',
+    },
+    {
+      code: 6013,
+      name: 'TooLowPrice',
+      msg: "Price can't be less than 3 SOL",
     },
   ],
 };

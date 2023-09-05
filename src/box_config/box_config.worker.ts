@@ -33,12 +33,13 @@ import {
   ComputeBudgetProgram,
   LAMPORTS_PER_SOL,
   PublicKey,
-  Transaction,
+  VersionedTransaction,
 } from '@solana/web3.js';
 import { RecoverBoxService } from 'src/recover_box/recover_box.service';
 import { UserService } from 'src/user/user.service';
 import { StatisticsService } from 'src/statistics/statistics.service';
 import { SharedService } from 'src/shared/shared.service';
+import { bs58 } from '@project-serum/anchor/dist/cjs/utils/bytes';
 
 export class BoxConfigWorker {
   box: BoxConfig;
@@ -387,11 +388,21 @@ export class BoxConfigWorker {
     });
   }
   async placeBid(serializedTransaction: string) {
-    const transaction = JSON.parse(serializedTransaction);
+    const transaction = bs58.decode(serializedTransaction);
+
     try {
-      const placeBidIx = Transaction.from(transaction.data).instructions.filter(
-        (ix) => !ix.programId.equals(ComputeBudgetProgram.programId),
-      );
+      const deserializedTransaction =
+        VersionedTransaction.deserialize(transaction);
+      const computeBudgetProgramId =
+        deserializedTransaction.message.staticAccountKeys.findIndex((s) =>
+          s.equals(ComputeBudgetProgram.programId),
+        );
+
+      const placeBidIx =
+        deserializedTransaction.message.compiledInstructions.filter(
+          (ix) => ix.programIdIndex !== computeBudgetProgramId,
+        );
+
       const proofPda = getProofPda(this.activeNft);
 
       const pdaInfo = await this.sharedService
@@ -402,8 +413,12 @@ export class BoxConfigWorker {
         throw new BadRequestException('This NFT is already minted.');
       }
 
-      const wallet = placeBidIx[0].keys[1].pubkey.toString();
-      const relatedUser = await this.userService.getUserByWallet(wallet);
+      const wallet = deserializedTransaction.message.staticAccountKeys.find(
+        (_, index) => index === placeBidIx[0].accountKeyIndexes[1],
+      );
+      const relatedUser = await this.userService.getUserByWallet(
+        wallet.toString(),
+      );
 
       const action = placeBidIx[0].data[8];
       if (
@@ -469,7 +484,7 @@ export class BoxConfigWorker {
 
       const { existingAuth, bidAmount, bidder, username } =
         await parseAndValidatePlaceBidTx(
-          transaction,
+          serializedTransaction,
           this.bidders,
           this.hasResolved,
           relatedUser,

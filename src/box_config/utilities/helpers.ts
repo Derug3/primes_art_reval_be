@@ -87,28 +87,43 @@ export const parseAndValidatePlaceBidTx = async (
 ) => {
   let txSig;
   try {
-    const transaction = Transaction.from(tx.data);
+    const decodedTx = bs58.decode(tx);
+
+    let transaction = VersionedTransaction.deserialize(decodedTx);
     let existingBidProofAuthority: string | null = null;
-    const instructionsWithoutCb = transaction.instructions.filter(
-      (ix) =>
-        ix.programId.toString() !== ComputeBudgetProgram.programId.toString(),
+    const computeBudgetIndex = transaction.message.staticAccountKeys.findIndex(
+      (acc) => acc.equals(ComputeBudgetProgram.programId),
     );
-    const bidder = instructionsWithoutCb[0].keys[1].pubkey.toString();
-    if (instructionsWithoutCb[0].programId.toString() !== programId) {
+    const programIdIndex = transaction.message.staticAccountKeys.findIndex(
+      (acc) => acc.equals(program.programId),
+    );
+    const instructionsWithoutCb =
+      transaction.message.compiledInstructions.filter(
+        (ix) => ix.programIdIndex !== computeBudgetIndex,
+      );
+
+    const bidder = transaction.message.staticAccountKeys
+      .find(
+        (key, index) => index === instructionsWithoutCb[0].accountKeyIndexes[1],
+      )
+      .toString();
+    if (instructionsWithoutCb[0].programIdIndex !== programIdIndex) {
       throw new Error('Invalid program id');
     }
-    if (instructionsWithoutCb[0].keys[5]) {
-      existingBidProofAuthority =
-        instructionsWithoutCb[0].keys[5].pubkey.toString();
+    if (instructionsWithoutCb[0].accountKeyIndexes[5]) {
+      existingBidProofAuthority = transaction.message.staticAccountKeys
+        .find(
+          (acc, index) =>
+            index === instructionsWithoutCb[0].accountKeyIndexes[5],
+        )
+        .toString();
     }
 
     const authority = getAuthorityAsSigner();
 
-    transaction.partialSign(authority);
+    transaction.sign([authority]);
 
-    txSig = await connection.sendRawTransaction(
-      transaction.serialize({ requireAllSignatures: false }),
-    );
+    txSig = await connection.sendRawTransaction(transaction.serialize());
 
     await confirmTransaction(txSig, connection);
     if (instructionsWithoutCb.length > 1) {
@@ -116,7 +131,9 @@ export const parseAndValidatePlaceBidTx = async (
     }
 
     const box = await program.account.boxData.fetch(
-      instructionsWithoutCb[0].keys[0].pubkey,
+      transaction.message.staticAccountKeys.find(
+        (_, index) => index === instructionsWithoutCb[0].accountKeyIndexes[0],
+      ),
     );
     let bidAmount = 0;
     const username =
@@ -128,11 +145,12 @@ export const parseAndValidatePlaceBidTx = async (
       bidAt: new Date(),
       nftId: nft.nftId,
       nftUri: nft.nftImage,
-      //TODO:add mint pass
     });
     try {
       bidAmount = Number(
-        instructionsWithoutCb[0].data.subarray(9, 17).readBigUInt64LE(),
+        Buffer.from(
+          instructionsWithoutCb[0].data.subarray(9, 17),
+        ).readBigUInt64LE(),
       );
 
       if (
@@ -161,7 +179,6 @@ export const parseAndValidatePlaceBidTx = async (
           bidder: user?.discordUsername ?? bidder.toString(),
           userId: user?.id ?? '',
           userDiscordId: user?.discordId ?? '',
-          nftMint: instructionsWithoutCb[2]?.keys[2]?.pubkey?.toString() ?? '',
           nft: {
             nftId: nft.nftId,
             nftImgUrl: nft.nftImage,
@@ -212,7 +229,6 @@ export const resolveBoxIx = async (
     const authority = getAuthorityAsSigner();
 
     const boxData = await program.account.boxData.fetch(boxAddress);
-
     const [winningProof] = PublicKey.findProgramAddressSync(
       [primeBoxWinnerSeed, Buffer.from(boxData.nftId)],
       program.programId,
