@@ -228,7 +228,7 @@ export class BoxConfigWorker {
         this.currentBid = activeBid;
         await this.publishBox();
         this.timer = await sleep(
-          (boxTimingState.endsAt - dayjs().unix()) * 1000,
+          (this.boxTimingState.endsAt - dayjs().unix()) * 1000,
         );
         this.hasPreResolved = false;
         while (this.additionalTimeout > 0) {
