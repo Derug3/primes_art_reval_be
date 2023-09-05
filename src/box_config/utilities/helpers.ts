@@ -329,7 +329,7 @@ export const initBoxIx = async (
       instructions: [ix],
       payerKey: authority.publicKey,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    }).compileToLegacyMessage();
+    }).compileToV0Message();
 
     const versionedTx = new VersionedTransaction(txMessage);
 
