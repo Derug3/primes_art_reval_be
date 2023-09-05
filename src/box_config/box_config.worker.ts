@@ -190,8 +190,17 @@ export class BoxConfigWorker {
       try {
         const { activeBid, bidder, nftId, nftUri, winner } = initBoxData;
         const boxTimingState = await this.getBoxTimingState();
+        await this.getDbBoxBidders();
+
+        const lastBidAt = this.bidders[this.bidders.length - 1].bidAt;
+
+        const endsAt = Math.max(
+          dayjs().add(5, 'minutes').unix(),
+          boxTimingState.endsAt - dayjs(lastBidAt).unix(),
+        );
+
         this.boxTimingState = {
-          endsAt: boxTimingState.endsAt,
+          endsAt,
           state: BoxState.Active,
           startedAt: dayjs().unix(),
         };
@@ -211,7 +220,6 @@ export class BoxConfigWorker {
           reshuffleCount: 0,
         };
         this.bidder = bidder.toString();
-        await this.getDbBoxBidders();
         this.box = { ...newBoxState };
         if (winner) {
           this.isWon = true;
