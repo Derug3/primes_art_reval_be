@@ -152,6 +152,7 @@ export class BoxConfigWorker {
           this.activeNft,
           connection,
           counter,
+          this.logger,
         );
 
         counter++;

@@ -312,7 +312,9 @@ export const initBoxIx = async (
   nft: Nft,
   connection: Connection,
   counter: number,
+  logger: Logger,
 ) => {
+  let versionedTx: VersionedTransaction;
   try {
     const authority = getAuthorityAsSigner();
 
@@ -342,16 +344,24 @@ export const initBoxIx = async (
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
     }).compileToV0Message();
 
-    const versionedTx = new VersionedTransaction(txMessage);
-
+    versionedTx = new VersionedTransaction(txMessage);
     versionedTx.sign([authority]);
 
     const txSig = await connection.sendRawTransaction(versionedTx.serialize());
-
     await confirmTransaction(txSig, connection);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error init box #${boxId}`, error);
+
+    logger.error(`Error init box #${boxId}: ${error.message}`, {
+      stack: error.stack,
+      rpcUrl: connection.rpcEndpoint,
+      boxId: box.boxId,
+      boxAddress: boxAddress.toString(),
+      boxConfig: box,
+      counter,
+      versionedTx,
+    });
 
     emitToWebhook({
       boxId: box.boxId,
