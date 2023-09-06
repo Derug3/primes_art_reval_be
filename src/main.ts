@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     abortOnError: false,
   });
-  process.setMaxListeners(1500);
+  process.setMaxListeners(5000);
 
   app.enableCors({
     allowedHeaders: [
