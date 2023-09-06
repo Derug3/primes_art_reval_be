@@ -11,4 +11,10 @@ export class PoolsConfig {
   @Field()
   @Column()
   isVisible: boolean;
+  @Field()
+  @Column({
+    default: false,
+    nullable: false,
+  })
+  isVisibleStats: boolean;
 }

@@ -37,10 +37,10 @@ export class StatisticsService implements OnModuleInit {
 
       if (!poolsConfig || poolsConfig.length === 0) {
         await this.poolConfigRepo.save([
-          { boxPool: BoxPool.Public, isVisible: true },
-          { boxPool: BoxPool.PreSale, isVisible: true },
-          { boxPool: BoxPool.OG, isVisible: true },
-          { boxPool: BoxPool.PrimeList, isVisible: true },
+          { boxPool: BoxPool.Public, isVisible: true, isVisibleStats: true },
+          { boxPool: BoxPool.PreSale, isVisible: true, isVisibleStats: true },
+          { boxPool: BoxPool.OG, isVisible: true, isVisibleStats: true },
+          { boxPool: BoxPool.PrimeList, isVisible: true, isVisibleStats: true },
         ]);
       }
 
@@ -139,6 +139,7 @@ export class StatisticsService implements OnModuleInit {
   async updatePoolConfig(
     boxPool: BoxPool,
     isVisible: boolean,
+    isVisibleStats: boolean,
     signedMessage: string,
     authority: string,
   ) {
@@ -157,18 +158,22 @@ export class StatisticsService implements OnModuleInit {
         await this.poolConfigRepo.save({
           boxPool,
           isVisible,
+          isVisibleStats,
         });
         this.emitAdminWebhookUpdateBoxPoolVisible(
           boxPool,
           isVisible,
+          isVisibleStats,
           authority,
         );
       } else {
         relatedPool.isVisible = isVisible;
+        relatedPool.isVisibleStats = isVisibleStats;
         await this.poolConfigRepo.save(relatedPool);
         this.emitAdminWebhookUpdateBoxPoolVisible(
           relatedPool.boxPool,
           isVisible,
+          isVisibleStats,
           authority,
         );
       }
@@ -272,6 +277,7 @@ export class StatisticsService implements OnModuleInit {
   private emitAdminWebhookUpdateBoxPoolVisible(
     boxPool: BoxPool,
     isVisible: boolean,
+    isVisibleStats: boolean,
     authority: string,
   ) {
     this.slackAdminWebhook
@@ -294,9 +300,18 @@ export class StatisticsService implements OnModuleInit {
                 type: 'mrkdwn',
                 text: `*BoxPool*\n${BoxPool[boxPool]}`,
               },
+            ],
+          },
+          {
+            type: 'section',
+            fields: [
               {
                 type: 'mrkdwn',
-                text: `*Is Visible*\n${isVisible ? '✅' : '❌'}`,
+                text: `*Is Visible Pool*\n${isVisible ? '✅' : '❌'}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Is Visible Stats*\n${isVisibleStats ? '✅' : '❌'}`,
               },
             ],
           },
@@ -318,13 +333,11 @@ export class StatisticsService implements OnModuleInit {
         ],
       } as IncomingWebhookSendArguments)
       .then(() => {
-        this.logger.debug(
-          'Sent webhook admin event "Update Seconds Extending"',
-        );
+        this.logger.debug('Sent webhook admin event "Update Box Pool"');
       })
       .catch((e) => {
         this.logger.error(
-          'Error send webhook admin event "Update Seconds Extending"',
+          'Error send webhook admin event "Update Box Pool"',
           e.stack,
         );
       });

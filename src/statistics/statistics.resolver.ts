@@ -39,12 +39,14 @@ export class StatisticsResolver {
   updatePoolConfig(
     @Args('pool', { type: () => BoxPool }) pool: BoxPool,
     @Args('isVisible') isVisible: boolean,
+    @Args('isVisibleStats') isVisibleStats: boolean,
     @Args('signedMessage') signedMessage: string,
     @Args('authority') authority: string,
   ) {
     return this.statisticsService.updatePoolConfig(
       pool,
       isVisible,
+      isVisibleStats,
       signedMessage,
       authority,
     );
