@@ -231,31 +231,18 @@ export class NftService implements OnModuleInit {
       const allProofs = (await program.account.winningProof.all()).map(
         (acc) => acc.account.nftId,
       );
-      const connection = this.sharedService.getRpcConnection();
-      const allNfts = (await this.nftRepository.find()).filter(
-        (nft) => nft.minted,
-      );
-      let changedCount = 0;
-      for (const nft of allNfts) {
-        const [winningProof] = PublicKey.findProgramAddressSync(
-          [primeBoxWinnerSeed, Buffer.from(nft.nftId)],
-          program.programId,
-        );
-        const accInfo = await connection.getAccountInfo(winningProof);
-        if (!accInfo) {
-          changedCount++;
-          await this.nftRepository.save({ ...nft, minted: false });
-        }
-      }
-      this.logger.warn(`Found ${changedCount} non synced NFTS`);
 
-      await this.statsService.setStats(allProofs.length);
+      const allNfts = await this.nftRepository.find({
+        where: { nftId: In(allProofs) },
+      });
 
-      await this.nftRepository.save(
-        allNfts.map((n) => ({ ...n, minted: true })),
-      );
-      this.logger.log('Synced data');
-      return true;
+      const nonMinted = allNfts.filter((n) => !n.minted);
+
+      this.logger.warn(`Found ${nonMinted.length} non-synced NFTs!`);
+
+      const mapped = [...nonMinted].map((nft) => ({ ...nft, minted: true }));
+
+      await this.nftRepository.save(mapped);
     } catch (error) {
       console.log(error);
       this.logger.error(`Error sync data: ${error.message}`, error.stack);
