@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, MoreThan } from 'typeorm';
+import { In, IsNull, MoreThan } from "typeorm";
 import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 
