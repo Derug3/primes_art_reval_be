@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, MoreThan } from "typeorm";
+import { In, IsNull, MoreThan } from 'typeorm';
 import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
 
@@ -251,6 +251,7 @@ export class NftService implements OnModuleInit {
       const mapped = [...nonMinted].map((nft) => ({ ...nft, minted: true }));
 
       await this.nftRepository.save(mapped);
+      return true;
     } catch (error) {
       console.log(error);
       this.logger.error(`Error sync data: ${error.message}`, error.stack);
