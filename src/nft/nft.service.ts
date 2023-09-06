@@ -7,10 +7,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, MoreThan } from 'typeorm';
+import { IsNull, MoreThan } from 'typeorm';
 import { BoxNfts, Nft } from './entity/nft.entity';
 import { NftRepository } from './repository/nft_repository';
-import { chunk } from 'lodash';
 
 import {
   checkIfMessageIsSigned,
@@ -63,6 +62,15 @@ export class NftService implements OnModuleInit {
       }
 
       const items = cdnNfts.data.result;
+
+      if (items === null) {
+        this.logger.error('Received an empty NFT list.', {
+          response: cdnNfts,
+          cdnUrl,
+          authority,
+        });
+        throw new BadRequestException('Received an empty NFT list.');
+      }
 
       this.logger.log(`Got ${items.length} NFTs`);
       const nfts: Nft[] = await Promise.all(
