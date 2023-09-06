@@ -226,7 +226,7 @@ export const parseAndValidatePlaceBidTx = async (
       rpcResponse: error.message,
       event: 'PlaceBid',
     });
-    if (error.message.includes('0x1774')) {
+    if (error.message.includes('0x1772')) {
       throw new BadRequestException(
         'Bid failed, your offer below the Top bidder',
       );
