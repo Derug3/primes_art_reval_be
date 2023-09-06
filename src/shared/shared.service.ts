@@ -28,6 +28,8 @@ export class SharedService implements OnModuleInit {
 
     this.rpcConnections.set(rpcConnection, usedTimes + 1);
 
-    return new Connection(rpcConnection, 'confirmed');
+    return new Connection(rpcConnection, {
+      commitment: 'confirmed',
+    });
   }
 }

@@ -199,6 +199,10 @@ export class BoxConfigService implements OnModuleInit {
     if (!box) throw new NotFoundException('Given box not found!');
     if (box.activeNft?.nftId !== nftId)
       throw new Error('NFT expired, please try on next shuffle!');
+    const isVisible = await this.statsSerivce.checkIfPoolIsVisible(
+      box.box.boxPool,
+    );
+    if (!isVisible) throw new Error('Choosen pool is not yet live!');
     return box.placeBid(serializedTx);
   }
   checkBoxExistance(boxId: number) {

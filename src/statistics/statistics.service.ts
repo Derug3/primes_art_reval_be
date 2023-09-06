@@ -258,6 +258,17 @@ export class StatisticsService implements OnModuleInit {
       });
   }
 
+  async checkIfPoolIsVisible(pool: BoxPool) {
+    try {
+      const poolConfig = await this.poolConfigRepo.findOne({
+        where: { boxPool: pool },
+      });
+      return poolConfig.isVisible;
+    } catch (error) {
+      return false;
+    }
+  }
+
   private emitAdminWebhookUpdateBoxPoolVisible(
     boxPool: BoxPool,
     isVisible: boolean,
